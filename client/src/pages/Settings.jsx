@@ -35,6 +35,25 @@ function formatAttributes(attrs) {
     .map((attr) => `${attr.key}:${attr.value}`);
 }
 
+function inferRoleLabelFromAttributes(attributeTags) {
+  const normalized = [...(attributeTags || [])].sort().join("|");
+  if (!normalized) return "No role selected";
+
+  for (const sector of Object.values(ROLE_PRESETS)) {
+    for (const role of sector.roles || []) {
+      const roleSignature = (role.attrs || [])
+        .map((a) => `${a.key}:${a.value}`)
+        .sort()
+        .join("|");
+      if (roleSignature === normalized) {
+        return role.label;
+      }
+    }
+  }
+
+  return "Custom role";
+}
+
 // ─── Real-world role presets ──────────────────────────────────────────────────
 // Each role maps to a set of attribute key-value pairs that exactly describe it.
 // These are hashed and written on-chain via setUserAttributes() so file owners
@@ -103,6 +122,8 @@ export default function Settings({ account }) {
   const [selectedSector, setSelectedSector] = useState("healthcare");
   const [isTrustedIssuer, setIsTrustedIssuer] = useState(false);
   const [issueTargetAddress, setIssueTargetAddress] = useState(account || "");
+  const currentAttributeTags = formatAttributes(attrs);
+  const currentRoleLabel = inferRoleLabelFromAttributes(currentAttributeTags);
 
   useEffect(() => {
     setDisplayName(account ? (localStorage.getItem(`displayName_${account}`) || "") : "");
@@ -201,6 +222,10 @@ export default function Settings({ account }) {
           <div>
             <div className="font-semibold text-gray-800">{displayName || "Anonymous"}</div>
             <div className="text-xs font-mono text-gray-400 mt-0.5">{account}</div>
+            <div className="text-xs text-gray-600 mt-1">Role: <span className="font-semibold">{currentRoleLabel}</span></div>
+            <div className="text-xs text-gray-500 mt-0.5 break-words">
+              Attributes: {currentAttributeTags.length > 0 ? currentAttributeTags.join(", ") : "None"}
+            </div>
             <div className="text-xs text-gray-400 mt-1">Avatar generated from your wallet address (blockies)</div>
           </div>
         </div>
