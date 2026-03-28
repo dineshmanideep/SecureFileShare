@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { LayoutGrid, List, RefreshCw, FolderOpen, Search, Lock } from "lucide-react";
+import { LayoutGrid, List, RefreshCw, FolderOpen, Search, Lock, Share2, X, Loader2, Check } from "lucide-react";
 import { Identity } from "@semaphore-protocol/identity";
 import { Group } from "@semaphore-protocol/group";
 import { generateProof } from "@semaphore-protocol/proof";
@@ -40,6 +40,11 @@ export default function ZkPublicFiles({ account, searchQuery }) {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploads, setUploads] = useState([]);
+  const [shareFile, setShareFile] = useState(null);
+  const [shareCommitment, setShareCommitment] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareDone, setShareDone] = useState(false);
+  const [shareError, setShareError] = useState("");
 
   const filteredFiles = files.filter((f) =>
     !searchQuery || f.fileName?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -193,20 +198,25 @@ export default function ZkPublicFiles({ account, searchQuery }) {
     const toastId = toast.loading("Generating ZK proof and downloading…");
     try {
       const signer = await getSigner();
-      const auth = await signAuthMessage(signer);
-      const downloadWithAuth = async () => {
-        const dlRes = await fetch(`/api/zk-public/download/${file.id}`, {
-          headers: {
-            "x-user-address": auth.address,
-            "x-signature": auth.signature,
-            "x-message": auth.message,
-          },
-        });
+      const userAddress = String(await signer.getAddress()).toLowerCase();
+      const authedFetch = async (url, options = {}) => {
+        const auth = await signAuthMessage(signer);
+        const headers = {
+          ...(options.headers || {}),
+          "x-user-address": auth.address,
+          "x-signature": auth.signature,
+          "x-message": auth.message,
+        };
+        return fetch(url, { ...options, headers });
+      };
+
+      const downloadWithFreshAuth = async () => {
+        const dlRes = await authedFetch(`/api/zk-public/download/${file.id}`);
         return dlRes;
       };
 
       // Fast-path: if backend already has cached ZK verification for this user+file, skip on-chain proof.
-      let dlRes = await downloadWithAuth();
+      let dlRes = await downloadWithFreshAuth();
       if (dlRes.ok) {
         const blob = await dlRes.blob();
         const url = URL.createObjectURL(blob);
@@ -237,7 +247,7 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         throw new Error(`Invalid ZK groupId format: "${groupIdStr}". Must be numeric.`);
       }
 
-      const storageKey = `semaphoreIdentity_${String(auth.address).toLowerCase()}`;
+      const storageKey = `semaphoreIdentity_${userAddress}`;
       const stored = localStorage.getItem(storageKey);
       if (!stored) {
         throw new Error("No Semaphore identity found for this wallet/browser profile.");
@@ -285,11 +295,11 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       }
 
       const group = new Group(members);
-      const packedHash = ethers.utils.solidityKeccak256(["uint256", "address"], [file.id, auth.address]);
+      const packedHash = ethers.utils.solidityKeccak256(["uint256", "address"], [file.id, userAddress]);
       const message = ethers.BigNumber.from(packedHash).toString();
       const scopeSeed = ethers.utils.solidityKeccak256(
         ["uint256", "address", "uint256"],
-        [file.id, auth.address, ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString()]
+        [file.id, userAddress, ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString()]
       );
       const scope = ethers.BigNumber.from(scopeSeed).toString();
       const proof = await generateProof(identity, group, message, scope);
@@ -298,13 +308,10 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       const verifyTx = await semaphoreValidateProof(semaphore, groupIdNum, proof);
       await verifyTx.wait();
 
-      const verifyRes = await fetch("/api/zk-public/verify-proof", {
+      const verifyRes = await authedFetch("/api/zk-public/verify-proof", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-address": auth.address,
-          "x-signature": auth.signature,
-          "x-message": auth.message,
         },
         body: JSON.stringify({
           fileId: file.id,
@@ -317,7 +324,7 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         throw new Error(verifyData.error || "Backend proof verification failed");
       }
 
-      dlRes = await downloadWithAuth();
+      dlRes = await downloadWithFreshAuth();
       if (!dlRes.ok) {
         const errData = await dlRes.json().catch(() => ({ error: "Download failed" }));
         throw new Error(errData.error || "Download failed");
@@ -336,6 +343,95 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       toast.success("File downloaded with ZK access proof!", { id: toastId });
     } catch (err) {
       toast.error(err.message || "Download failed", { id: toastId });
+    }
+  };
+
+  const openShareModal = (file) => {
+    setShareFile(file);
+    setShareCommitment("");
+    setShareError("");
+    setShareDone(false);
+  };
+
+  const closeShareModal = () => {
+    if (isSharing) return;
+    setShareFile(null);
+    setShareCommitment("");
+    setShareError("");
+    setShareDone(false);
+  };
+
+  const submitShare = async () => {
+    if (!shareFile) return;
+    const toastId = toast.loading("Sharing ZK file access…");
+    setIsSharing(true);
+    setShareError("");
+    try {
+      const signer = await getSigner();
+      await verifyContractsDeployed(signer);
+      const semaphore = await getSemaphore(signer);
+
+      const groupIdStr = String(shareFile.groupId || "").trim();
+      if (!groupIdStr || !/^\d+$/.test(groupIdStr)) {
+        throw new Error("This file has an invalid ZK group id");
+      }
+
+      let commitment;
+      try {
+        commitment = ethers.BigNumber.from(String(shareCommitment).trim()).toString();
+      } catch {
+        throw new Error("Invalid commitment format. Provide a uint256 value.");
+      }
+
+      const groupIdNum = ethers.BigNumber.from(groupIdStr);
+      const existingCommitments = new Set();
+
+      try {
+        const ev1 = await semaphore.queryFilter(semaphore.filters.MemberAdded(groupIdNum), 0, "latest");
+        for (const event of ev1) {
+          const value = event?.args?.identityCommitment;
+          if (value !== undefined && value !== null) existingCommitments.add(value.toString());
+        }
+      } catch {
+      }
+
+      try {
+        const ev2 = await semaphore.queryFilter(semaphore.filters.MembersAdded(groupIdNum), 0, "latest");
+        for (const event of ev2) {
+          const arr = event?.args?.identityCommitments || [];
+          for (const value of arr) existingCommitments.add(value.toString());
+        }
+      } catch {
+      }
+
+      if (existingCommitments.has(commitment)) {
+        setShareDone(true);
+        toast.success("This commitment already has access", { id: toastId });
+        return;
+      }
+
+      const addTx = await semaphoreAddMember(semaphore, groupIdStr, commitment);
+      await addTx.wait();
+
+      setShareDone(true);
+      toast.success("Access shared successfully via ZK commitment", { id: toastId });
+    } catch (err) {
+      const msg = String(err?.message || "Sharing failed");
+      if (msg.includes("LeafAlreadyExists")) {
+        setShareDone(true);
+        toast.success("This commitment already has access", { id: toastId });
+        return;
+      }
+      if (msg.includes("CallerIsNotTheGroupAdmin")) {
+        const adminError = "Only the creator/admin of this ZK group can share access";
+        setShareError(adminError);
+        toast.error(adminError, { id: toastId });
+        return;
+      }
+      setShareError(msg);
+      toast.error(msg, { id: toastId });
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -423,7 +519,7 @@ export default function ZkPublicFiles({ account, searchQuery }) {
               file={file}
               onClick={setSelectedFile}
               onDownload={handleDownload}
-              onShare={() => toast("Sharing is disabled in ZK public files")}
+              onShare={openShareModal}
               onCopyCid={() => {}}
               onErase={() => {}}
             />
@@ -446,11 +542,78 @@ export default function ZkPublicFiles({ account, searchQuery }) {
               key={file.id}
               file={{ ...file, activeShares: [] }}
               onClick={setSelectedFile}
-              onShare={() => toast("Sharing is disabled in ZK public files")}
+              onShare={openShareModal}
               onDownload={handleDownload}
             />
           ))}
         </div>
+      )}
+
+      {shareFile && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={closeShareModal} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="card w-full max-w-lg overflow-hidden animate-fade-in" onClick={(event) => event.stopPropagation()}>
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Share ZK File</h3>
+                  <p className="text-xs text-gray-400 mt-1">Add recipient by Semaphore commitment (no wallet mapping stored in app)</p>
+                </div>
+                <button className="btn-icon" onClick={closeShareModal} disabled={isSharing}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <div className="text-xs text-gray-400">File</div>
+                  <div className="text-sm font-semibold text-gray-800 truncate">{shareFile.fileName || `File #${shareFile.id}`}</div>
+                  <div className="text-xs text-gray-500 mt-1">groupId: <span className="font-mono">{String(shareFile.groupId || "—")}</span></div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Recipient Semaphore Commitment</label>
+                  <input
+                    className="input-field mt-1 font-mono"
+                    placeholder="Enter uint256 commitment"
+                    value={shareCommitment}
+                    onChange={(event) => {
+                      setShareCommitment(event.target.value);
+                      setShareError("");
+                      setShareDone(false);
+                    }}
+                    disabled={isSharing}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Only numeric uint256 commitment values are accepted.</p>
+                </div>
+
+                {shareError && (
+                  <div className="bg-red-50 text-red-600 text-xs rounded-xl px-4 py-3">
+                    {shareError}
+                  </div>
+                )}
+
+                {shareDone && !shareError && (
+                  <div className="bg-green-50 text-green-700 text-xs rounded-xl px-4 py-3 flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5" />
+                    Access is available for this commitment.
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between p-6 border-t border-gray-100">
+                <button className="btn-secondary" onClick={closeShareModal} disabled={isSharing}>Cancel</button>
+                <button
+                  className="btn-primary inline-flex items-center gap-2"
+                  onClick={submitShare}
+                  disabled={isSharing || !String(shareCommitment).trim() || shareDone}
+                >
+                  {isSharing ? <><Loader2 className="w-4 h-4 animate-spin" /> Sharing...</> : <><Share2 className="w-4 h-4" /> Share Access</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {selectedFile && (
