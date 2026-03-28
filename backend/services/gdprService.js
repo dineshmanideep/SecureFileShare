@@ -97,6 +97,36 @@ function initSchema() {
       updatedAt        INTEGER NOT NULL
     );
 
+        -- ZK-public file listing metadata (no uploader identity persisted).
+        CREATE TABLE IF NOT EXISTS zk_public_files (
+            fileId           TEXT PRIMARY KEY,
+            fileName         TEXT NOT NULL,
+            fileSize         INTEGER NOT NULL,
+            groupId          TEXT NOT NULL,
+            fileHashHex      TEXT NOT NULL,
+            createdAt        INTEGER NOT NULL,
+            updatedAt        INTEGER NOT NULL
+        );
+
+        -- ZK-public decryption materials (no owner/uploader address persisted).
+        CREATE TABLE IF NOT EXISTS zk_public_materials (
+            fileId           TEXT PRIMARY KEY,
+            cidsJson         TEXT NOT NULL,
+            aesKeyHex        TEXT NOT NULL,
+            ivsJson          TEXT NOT NULL,
+            authTagsJson     TEXT NOT NULL,
+            createdAt        INTEGER NOT NULL,
+            updatedAt        INTEGER NOT NULL
+        );
+
+        -- ZK-public per-user proof verification cache (no uploader identity).
+        CREATE TABLE IF NOT EXISTS zk_public_access (
+            fileId           TEXT NOT NULL,
+            userAddress      TEXT NOT NULL,
+            verifiedAt       INTEGER NOT NULL,
+            PRIMARY KEY (fileId, userAddress)
+        );
+
         -- Group key management tables
         CREATE TABLE IF NOT EXISTS groups (
             groupId          TEXT PRIMARY KEY,
@@ -153,6 +183,7 @@ function initSchema() {
     // Migration-safe column adds for existing databases created before CP-ABE fields.
     ensureColumn("file_group_shares", "cpabePolicy", "TEXT");
     ensureColumn("file_group_shares", "cpabeCipherB64", "TEXT");
+    ensureColumn("zk_public_files", "groupId", "TEXT DEFAULT ''");
 }
 
 /** Returns the open DB instance, initialising it if needed. */

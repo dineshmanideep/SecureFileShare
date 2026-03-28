@@ -312,6 +312,16 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         return true;
     }
 
+    /**
+     * @notice Check access strictly through ZK verification state for a file.
+     * @dev Used by ZK-public file flow where backend does not persist uploader identity.
+     */
+    function checkZkOnlyAccess(address user, uint256 fileId) external view returns (bool) {
+        ZkPolicy memory zp = _zkPolicies[fileId];
+        if (!zp.enabled) return false;
+        return _zkVerifiedAccess[fileId][user];
+    }
+
     // ─────────────────────────── View Helpers ─────────────────────────────
 
     function getUserAttributes(address user) external view returns (bytes32[] memory) {

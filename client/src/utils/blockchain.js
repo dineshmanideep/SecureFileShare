@@ -227,3 +227,64 @@ export async function signAuthMessage(signer) {
     const signature = await signer.signMessage(message);
     return { address, signature, message };
 }
+
+/**
+ * Helper: Call Semaphore.createGroup(admin, duration) - handles overload resolution
+ */
+export async function semaphoreCreateGroup(semaphoreContract, adminAddress, merkleTreeDuration) {
+    if (!semaphoreContract) throw new Error("Semaphore contract not initialized");
+    if (!adminAddress || !ethers.utils.isAddress(adminAddress)) {
+        throw new Error("Invalid admin address for Semaphore group creation");
+    }
+    if (!Number.isFinite(merkleTreeDuration) || merkleTreeDuration <= 0) {
+        throw new Error("Invalid merkleTreeDuration (must be positive number)");
+    }
+    
+    try {
+        // Use contractInterface to explicitly target the (address, uint256) overload
+        const iface = semaphoreContract.interface;
+        const fragment = iface.functions['createGroup(address,uint256)'];
+        if (!fragment) {
+            throw new Error("Semaphore.createGroup(address,uint256) function not found in contract ABI");
+        }
+        
+        // Call the function directly
+        return semaphoreContract['createGroup(address,uint256)'](adminAddress, merkleTreeDuration);
+    } catch (err) {
+        throw new Error(`Failed to call Semaphore.createGroup: ${err.message}`);
+    }
+}
+
+/**
+ * Helper: Call Semaphore.addMember(groupId, identityCommitment) - handles parameter encoding
+ */
+export async function semaphoreAddMember(semaphoreContract, groupId, identityCommitment) {
+    if (!semaphoreContract) throw new Error("Semaphore contract not initialized");
+    if (!groupId) throw new Error("Invalid groupId");
+    if (!identityCommitment) throw new Error("Invalid identityCommitment");
+    
+    try {
+        // Ensure groupId is a BigNumber for contract compatibility
+        const groupIdBN = ethers.BigNumber.isBigNumber(groupId) ? groupId : ethers.BigNumber.from(String(groupId));
+        return semaphoreContract.addMember(groupIdBN, identityCommitment);
+    } catch (err) {
+        throw new Error(`Failed to call Semaphore.addMember: ${err.message}`);
+    }
+}
+
+/**
+ * Helper: Call Semaphore.validateProof(groupId, proof) - handles proof validation and BigNumber param
+ */
+export async function semaphoreValidateProof(semaphoreContract, groupId, proof) {
+    if (!semaphoreContract) throw new Error("Semaphore contract not initialized");
+    if (!groupId) throw new Error("Invalid groupId");
+    if (!proof) throw new Error("Invalid proof");
+    
+    try {
+        // Ensure groupId is a BigNumber for contract compatibility
+        const groupIdBN = ethers.BigNumber.isBigNumber(groupId) ? groupId : ethers.BigNumber.from(String(groupId));
+        return semaphoreContract.validateProof(groupIdBN, proof);
+    } catch (err) {
+        throw new Error(`Failed to call Semaphore.validateProof: ${err.message}`);
+    }
+}

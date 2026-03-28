@@ -12,6 +12,7 @@ const { accessRouter, receivedSharesRouter } = require("./routes/access");
 const gdprRoute = require("./routes/gdpr");
 const materialsRoute = require("./routes/materials");
 const groupsRoute = require("./routes/groups");
+const zkPublicRoute = require("./routes/zkPublic");
 
 // Services
 const gdprSvc = require("./services/gdprService");
@@ -125,6 +126,7 @@ app.use("/api", receivedSharesRouter);  // /api/received-shares
 app.use("/api/gdpr", strictLimiter, gdprRoute);
 app.use("/api/materials", materialsRoute);
 app.use("/api/groups", groupsRoute);
+app.use("/api/zk-public", strictLimiter, zkPublicRoute);
 
 // ─────────────────────────── Health Check ────────────────────────────────
 
@@ -163,6 +165,10 @@ app.listen(PORT, HOST, () => {
     console.log("   GET  /api/groups           – List groups for user");
     console.log("   POST /api/groups           – Create group");
     console.log("   POST /api/groups/share     – Share file to group");
+    console.log("   POST /api/zk-public/upload – Upload file for ZK-public flow");
+    console.log("   POST /api/zk-public/register – Finalize ZK-public upload");
+    console.log("   GET  /api/zk-public/files  – List ZK-public files");
+    console.log("   GET  /api/zk-public/download/:fileId – Download via ZK proof");
     console.log("   POST /api/gdpr/erase       – GDPR right to erasure");
     console.log("   GET  /api/gdpr/export      – GDPR Article 20 export");
 });

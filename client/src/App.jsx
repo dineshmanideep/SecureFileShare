@@ -6,6 +6,7 @@ import { getProvider } from "./utils/blockchain";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import MyFiles from "./pages/MyFiles";
+import ZkPublicFiles from "./pages/ZkPublicFiles";
 import SharedWithMe from "./pages/SharedWithMe";
 import GDPRCenterPage from "./pages/GDPRCenter";
 import Settings from "./pages/Settings";
@@ -167,6 +168,16 @@ export default function App() {
             account ? (
               <Layout account={account} onDisconnect={disconnectWallet} searchQuery={searchQuery} onSearch={setSearchQuery}>
                 <MyFiles {...pageProps} />
+              </Layout>
+            ) : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/zk-files"
+          element={
+            account ? (
+              <Layout account={account} onDisconnect={disconnectWallet} searchQuery={searchQuery} onSearch={setSearchQuery}>
+                <ZkPublicFiles {...pageProps} />
               </Layout>
             ) : <Navigate to="/" replace />
           }

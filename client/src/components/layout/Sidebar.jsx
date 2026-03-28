@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FolderOpen, Share2, Users, Shield,
-  Settings, ChevronLeft, Lock
+  Settings, ChevronLeft, Lock, KeyRound
 } from "lucide-react";
 
 const navItems = [
   { to: "/dashboard",  icon: LayoutDashboard, label: "Dashboard" },
   { to: "/my-files",   icon: FolderOpen,       label: "My Files"       },
+  { to: "/zk-files",   icon: KeyRound,         label: "ZK Files"       },
   { to: "/shared",     icon: Share2,            label: "Shared With Me" },
   { to: "/groups",     icon: Users,             label: "Groups"         },
   { to: "/gdpr",       icon: Shield,            label: "GDPR Center"    },
