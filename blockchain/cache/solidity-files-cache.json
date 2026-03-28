@@ -1,0 +1,753 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/contracts/AccessControl.sol": {
+      "lastModificationDate": 1774621279879,
+      "contentHash": "fe4596b1e1429e91f13df8334d690863",
+      "sourceName": "contracts/AccessControl.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "@semaphore-protocol/contracts/interfaces/ISemaphore.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "FileAccessControl"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
+      "lastModificationDate": 1774452192033,
+      "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Ownable"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+      "lastModificationDate": 1774452192033,
+      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
+      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ReentrancyGuard"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+      "lastModificationDate": 1774452191963,
+      "contentHash": "f07feb4a44b1a4872370da5aa70e8e46",
+      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Context"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/contracts/TimeBoundPermissions.sol": {
+      "lastModificationDate": 1774452015158,
+      "contentHash": "4ea88fab4ae89108008f5c6fd6126a9c",
+      "sourceName": "contracts/TimeBoundPermissions.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "TimeBoundPermissions"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/contracts/GDPRCompliance.sol": {
+      "lastModificationDate": 1774452015158,
+      "contentHash": "a44faf3034c8ed4d54c4c09e668faacc",
+      "sourceName": "contracts/GDPRCompliance.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "GDPRCompliance"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/contracts/FileRegistry.sol": {
+      "lastModificationDate": 1774452015158,
+      "contentHash": "9d63e5e029f78ed22f2eaed29325c523",
+      "sourceName": "contracts/FileRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "FileRegistry"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/interfaces/ISemaphore.sol": {
+      "lastModificationDate": 1774515651725,
+      "contentHash": "c7e4b7d4d5ac5578a8e6438c2bb2e666",
+      "sourceName": "@semaphore-protocol/contracts/interfaces/ISemaphore.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "ISemaphore"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/Semaphore.sol": {
+      "lastModificationDate": 1774515651722,
+      "contentHash": "cdd7c49fd7633902b3f2cf741a7e43c3",
+      "sourceName": "@semaphore-protocol/contracts/Semaphore.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./interfaces/ISemaphore.sol",
+        "./interfaces/ISemaphoreVerifier.sol",
+        "./base/SemaphoreGroups.sol",
+        "./base/Constants.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "Semaphore"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/interfaces/ISemaphoreVerifier.sol": {
+      "lastModificationDate": 1774515651725,
+      "contentHash": "d0b7e626e52726ae20e86c169289b848",
+      "sourceName": "@semaphore-protocol/contracts/interfaces/ISemaphoreVerifier.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "ISemaphoreVerifier"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/base/SemaphoreGroups.sol": {
+      "lastModificationDate": 1774515651722,
+      "contentHash": "215932048b6f8e69ef685042d208201c",
+      "sourceName": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../interfaces/ISemaphoreGroups.sol",
+        "@zk-kit/lean-imt.sol/InternalLeanIMT.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "SemaphoreGroups"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/base/Constants.sol": {
+      "lastModificationDate": 1774515651722,
+      "contentHash": "40b7091f14ee398362f76c1bc4dc20c1",
+      "sourceName": "@semaphore-protocol/contracts/base/Constants.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": []
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@zk-kit/lean-imt.sol/InternalLeanIMT.sol": {
+      "lastModificationDate": 1774515651268,
+      "contentHash": "d2559532b41cd344b6f5fc28720d194d",
+      "sourceName": "@zk-kit/lean-imt.sol/InternalLeanIMT.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "poseidon-solidity/PoseidonT3.sol",
+        "./Constants.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.4"
+      ],
+      "artifacts": [
+        "InternalLeanIMT"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/interfaces/ISemaphoreGroups.sol": {
+      "lastModificationDate": 1774515651725,
+      "contentHash": "31eaf7e43971631370f584f7fa0a9065",
+      "sourceName": "@semaphore-protocol/contracts/interfaces/ISemaphoreGroups.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "ISemaphoreGroups"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@zk-kit/lean-imt.sol/Constants.sol": {
+      "lastModificationDate": 1774515651268,
+      "contentHash": "f8b2aa1a7d19380722cb6045ffc42c0f",
+      "sourceName": "@zk-kit/lean-imt.sol/Constants.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.4"
+      ],
+      "artifacts": []
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/poseidon-solidity/PoseidonT3.sol": {
+      "lastModificationDate": 1774515650588,
+      "contentHash": "88a3db6023abdf06f44823c05f81f69e",
+      "sourceName": "poseidon-solidity/PoseidonT3.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.7.0"
+      ],
+      "artifacts": [
+        "PoseidonT3"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/base/SemaphoreVerifier.sol": {
+      "lastModificationDate": 1774515651722,
+      "contentHash": "e28f1bec80e826fb56317b9c755f1b1e",
+      "sourceName": "@semaphore-protocol/contracts/base/SemaphoreVerifier.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Constants.sol",
+        "./SemaphoreVerifierKeyPts.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "SemaphoreVerifier"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/node_modules/@semaphore-protocol/contracts/base/SemaphoreVerifierKeyPts.sol": {
+      "lastModificationDate": 1774515651722,
+      "contentHash": "f950b01fa5ba9f45f279261ca7766036",
+      "sourceName": "@semaphore-protocol/contracts/base/SemaphoreVerifierKeyPts.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.23 <0.9.0"
+      ],
+      "artifacts": [
+        "SemaphoreVerifierKeyPts"
+      ]
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/contracts/SemaphoreImports.sol": {
+      "lastModificationDate": 1774515851091,
+      "contentHash": "e2507faef4dc7ff4fe3b2478da465b14",
+      "sourceName": "contracts/SemaphoreImports.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@semaphore-protocol/contracts/base/SemaphoreVerifier.sol",
+        "@semaphore-protocol/contracts/Semaphore.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": []
+    },
+    "/home/dinesh/Desktop/Project(ias)/code/blockchain/contracts/mocks/MockSemaphore.sol": {
+      "lastModificationDate": 1774516155767,
+      "contentHash": "e0deb04835c1cc97875601124ac158f7",
+      "sourceName": "contracts/mocks/MockSemaphore.sol",
+      "solcConfig": {
+        "version": "0.8.23",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@semaphore-protocol/contracts/interfaces/ISemaphore.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "MockSemaphore"
+      ]
+    }
+  }
+}

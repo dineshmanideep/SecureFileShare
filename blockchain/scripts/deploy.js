@@ -25,6 +25,32 @@ async function main() {
         "ETH"
     );
 
+    // ── 0. Semaphore (ZK access control) ─────────────────────────────────
+    console.log("\n📦 Deploying PoseidonT3 library...");
+    const PoseidonT3 = await ethers.getContractFactory("poseidon-solidity/PoseidonT3.sol:PoseidonT3");
+    const poseidonT3 = await PoseidonT3.deploy();
+    await poseidonT3.waitForDeployment();
+    const poseidonT3Addr = await poseidonT3.getAddress();
+    console.log("✅ PoseidonT3 deployed to:", poseidonT3Addr);
+
+    console.log("\n📦 Deploying SemaphoreVerifier...");
+    const SemaphoreVerifier = await ethers.getContractFactory("SemaphoreVerifier");
+    const semaphoreVerifier = await SemaphoreVerifier.deploy();
+    await semaphoreVerifier.waitForDeployment();
+    const semaphoreVerifierAddr = await semaphoreVerifier.getAddress();
+    console.log("✅ SemaphoreVerifier deployed to:", semaphoreVerifierAddr);
+
+    console.log("\n📦 Deploying Semaphore...");
+    const Semaphore = await ethers.getContractFactory("Semaphore", {
+        libraries: {
+            PoseidonT3: poseidonT3Addr,
+        },
+    });
+    const semaphore = await Semaphore.deploy(semaphoreVerifierAddr);
+    await semaphore.waitForDeployment();
+    const semaphoreAddr = await semaphore.getAddress();
+    console.log("✅ Semaphore deployed to:", semaphoreAddr);
+
     // ── 1. FileRegistry ──────────────────────────────────────────────────
     console.log("\n📦 Deploying FileRegistry...");
     const FileRegistry = await ethers.getContractFactory("FileRegistry");
@@ -36,7 +62,7 @@ async function main() {
     // ── 2. FileAccessControl ─────────────────────────────────────────────
     console.log("\n📦 Deploying FileAccessControl...");
     const FileAccessControl = await ethers.getContractFactory("FileAccessControl");
-    const accessControl = await FileAccessControl.deploy();
+    const accessControl = await FileAccessControl.deploy(semaphoreAddr);
     await accessControl.waitForDeployment();
     const accessControlAddr = await accessControl.getAddress();
     console.log("✅ FileAccessControl deployed to:", accessControlAddr);
@@ -72,13 +98,14 @@ async function main() {
     console.log("✅ GDPRCompliance deployed to:", gdprAddr);
 
     // ── Save addresses ───────────────────────────────────────────────────
-    // Note: ZKPVerifier is excluded in this 65% version (see midsem submission)
     const addresses = {
         network: network.name || process.env.HARDHAT_NETWORK_NAME || "localhost",
         chainId,
         deployedAt: new Date().toISOString(),
         rbacAdminWallet: normalizeAddress(configuredRbacAdminWallet) || null,
         contracts: {
+            SemaphoreVerifier: semaphoreVerifierAddr,
+            Semaphore: semaphoreAddr,
             FileRegistry: fileRegistryAddr,
             FileAccessControl: accessControlAddr,
             TimeBoundPermissions: timeBoundAddr,

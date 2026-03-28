@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Share2, Download, Clock, RefreshCw, Loader2, Users } from "lucide-react";
-import { getSigner, getTimeBoundPermissions, signAuthMessage } from "../utils/blockchain";
+import { getSigner, getAccessControl, getSemaphore, signAuthMessage } from "../utils/blockchain";
 import FileTypeIcon from "../components/files/FileTypeIcon";
 import AccessVerification from "../components/sharing/AccessVerification";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
+import { Identity } from "@semaphore-protocol/identity";
+import { Group } from "@semaphore-protocol/group";
+import { generateProof } from "@semaphore-protocol/proof";
+import { ethers } from "ethers";
 
 function CountdownTimer({ expiryTs }) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -91,8 +95,66 @@ export default function SharedWithMe({ account, searchQuery }) {
       const signer = await getSigner();
       const auth = await signAuthMessage(signer);
 
-      // Simulate verification steps with delays for UX
-      for (let step = 1; step <= 5; step++) {
+      // Step 1: Verify ZK proof on-chain (if file has ZK policy enabled).
+      setVerifyModal(v => ({ ...v, steps: 1 }));
+      const accessControl = await getAccessControl(signer);
+      const [zkEnabled, zkGroupIdBN] = await accessControl.getZkPolicy(file.id);
+      const zkEnabledBool = Boolean(zkEnabled);
+      const zkGroupId = zkGroupIdBN?.toString ? zkGroupIdBN.toString() : String(zkGroupIdBN || "");
+
+      if (zkEnabledBool) {
+        const storageKey = `semaphoreIdentity_${String(auth.address).toLowerCase()}`;
+        const stored = localStorage.getItem(storageKey);
+        if (!stored) {
+          throw new Error("No Semaphore identity found for this wallet in this browser. Use the same browser/profile where your ZK identity was created, then try again.");
+        }
+
+        let identity;
+        try {
+          identity = Identity.import(stored);
+        } catch {
+          throw new Error("Stored Semaphore identity is invalid. Recreate identity in Settings and ask issuer to re-enroll your commitment in the ZK group.");
+        }
+
+        const semaphore = await getSemaphore(signer);
+
+        // Rebuild the group locally from on-chain events.
+        const groupIdNum = Number(zkGroupId);
+        const members = [];
+        const ev1 = await semaphore.queryFilter(semaphore.filters.MemberAdded(groupIdNum), 0, "latest");
+        for (const ev of ev1) {
+          const c = ev?.args?.identityCommitment;
+          if (c !== undefined && c !== null) members.push(c.toString());
+        }
+        const ev2 = await semaphore.queryFilter(semaphore.filters.MembersAdded(groupIdNum), 0, "latest");
+        for (const ev of ev2) {
+          const arr = ev?.args?.identityCommitments || [];
+          for (const c of arr) members.push(c.toString());
+        }
+
+        const localCommitment = identity.commitment.toString();
+        const isMember = members.some((m) => String(m) === localCommitment);
+        if (!isMember) {
+          throw new Error("Your current Semaphore identity commitment is not a member of this ZK group. Ask the issuer/owner to add this commitment, or use the original browser identity that was enrolled.");
+        }
+
+        const group = new Group(members);
+
+        // Bind proof to (fileId, userAddress) and scope it to fileId.
+        const packedHash = ethers.utils.solidityKeccak256(
+          ["uint256", "address"],
+          [file.id, auth.address]
+        );
+        const message = ethers.BigNumber.from(packedHash).toString();
+        const scope = String(file.id);
+
+        const proof = await generateProof(identity, group, message, scope);
+        const tx = await accessControl.verifyZkAccess(file.id, proof);
+        await tx.wait();
+      }
+
+      // Simulate the remaining steps with delays for UX
+      for (let step = 2; step <= 5; step++) {
         setVerifyModal(v => ({ ...v, steps: step }));
         await new Promise(r => setTimeout(r, 400));
       }
@@ -206,6 +268,12 @@ export default function SharedWithMe({ account, searchQuery }) {
                         <span className="badge badge-red">Expired</span>
                       )}
 
+                      {file.requiresZkProof && file.isAccessValid && (
+                        <span className="badge text-[10px] bg-purple-50 text-purple-600 border border-purple-100">
+                          ZK Verify Required
+                        </span>
+                      )}
+
                       {/* Timer */}
                       {file.expiryTimestamp && (
                         <CountdownTimer expiryTs={file.expiryTimestamp} />
@@ -224,7 +292,9 @@ export default function SharedWithMe({ account, searchQuery }) {
                         ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Decrypting…</>
                         : !file.isAccessValid
                           ? "Access Expired"
-                          : <><Download className="w-3.5 h-3.5" /> Download & Decrypt</>
+                          : file.requiresZkProof
+                            ? <><Download className="w-3.5 h-3.5" /> Verify ZK & Download</>
+                            : <><Download className="w-3.5 h-3.5" /> Download & Decrypt</>
                       }
                     </button>
                   </div>

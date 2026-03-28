@@ -3,6 +3,7 @@ import FileRegistryABI from "../../../blockchain/artifacts/contracts/FileRegistr
 import AccessControlABI from "../../../blockchain/artifacts/contracts/AccessControl.sol/FileAccessControl.json";
 import TimeBoundPermissionsABI from "../../../blockchain/artifacts/contracts/TimeBoundPermissions.sol/TimeBoundPermissions.json";
 import GDPRComplianceABI from "../../../blockchain/artifacts/contracts/GDPRCompliance.sol/GDPRCompliance.json";
+import SemaphoreABI from "../../../blockchain/artifacts/@semaphore-protocol/contracts/Semaphore.sol/Semaphore.json";
 // Fallback if addresses file wasn't generated correctly by deploy.js yet
 import Addresses from "../contracts/addresses.json";
 
@@ -112,11 +113,14 @@ export async function getGDPRCompliance(signer) {
     return getContract(CONTRACTS.GDPRCompliance, GDPRComplianceABI, signer);
 }
 
-export async function getZKPVerifier(signer) {
-    throw new Error(
-        "ZKPVerifier artifact is not available in midsem submission/blockchain/artifacts. " +
-        "Compile/deploy ZKPVerifier or remove ZKP calls in this build."
-    );
+export async function getSemaphore(signer) {
+    if (!CONTRACTS.Semaphore) {
+        throw new Error(
+            "Semaphore contract address missing in addresses.json. " +
+            "Re-run blockchain deploy to generate updated addresses including Semaphore."
+        );
+    }
+    return getContract(CONTRACTS.Semaphore, SemaphoreABI, signer);
 }
 
 /**

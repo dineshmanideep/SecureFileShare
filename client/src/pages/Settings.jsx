@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { User, Save, Check, Shield, Loader2 } from "lucide-react";
+import { User, Save, Check, Shield, Loader2, Copy } from "lucide-react";
 import WalletAvatar from "../components/profile/WalletAvatar";
 import { ethers } from "ethers";
 import { getAccessControl, getSigner, NETWORK_CONFIG } from "../utils/blockchain";
 import toast from "react-hot-toast";
+import { Identity } from "@semaphore-protocol/identity";
 
 const EMPTY_ATTR = { key: "", value: "" };
 const CONFIGURED_RBAC_ADMIN_WALLET = (import.meta.env.VITE_RBAC_ADMIN_WALLET || "").trim();
@@ -46,6 +47,30 @@ function inferRoleLabelFromAttributes(attributeTags) {
         .sort()
         .join("|");
       if (roleSignature === normalized) {
+        return role.label;
+      }
+    }
+  }
+
+  return "Custom role";
+}
+
+function inferRoleLabelFromHashedAttributes(attributeHashes) {
+  const normalized = [...(attributeHashes || [])]
+    .map((h) => String(h || "").toLowerCase())
+    .sort()
+    .join("|");
+
+  if (!normalized) return "No role selected";
+
+  for (const sector of Object.values(ROLE_PRESETS)) {
+    for (const role of sector.roles || []) {
+      const hashedSignature = (role.attrs || [])
+        .map((a) => `${a.key}:${a.value}`)
+        .map((tag) => ethers.utils.keccak256(ethers.utils.toUtf8Bytes(tag)).toLowerCase())
+        .sort()
+        .join("|");
+      if (hashedSignature === normalized) {
         return role.label;
       }
     }
@@ -121,14 +146,66 @@ export default function Settings({ account }) {
   const [syncingAttributes, setSyncingAttributes] = useState(false);
   const [selectedSector, setSelectedSector] = useState("healthcare");
   const [isTrustedIssuer, setIsTrustedIssuer] = useState(false);
-  const [issueTargetAddress, setIssueTargetAddress] = useState(account || "");
+  const [issueTargetAddress, setIssueTargetAddress] = useState("");
+  const [zkIdentityCommitment, setZkIdentityCommitment] = useState("");
+  const [zkGroupDuration, setZkGroupDuration] = useState("3600");
+  const [onChainRoleLabel, setOnChainRoleLabel] = useState("No role selected");
+  const [onChainAttributeCount, setOnChainAttributeCount] = useState(0);
   const currentAttributeTags = formatAttributes(attrs);
   const currentRoleLabel = inferRoleLabelFromAttributes(currentAttributeTags);
+  const canManageRoleIssuance = normalizedConfiguredAdmin
+    ? accountMatchesConfiguredAdmin
+    : isTrustedIssuer;
 
   useEffect(() => {
     setDisplayName(account ? (localStorage.getItem(`displayName_${account}`) || "") : "");
     setAttrs(getStoredAttributes(account));
-    setIssueTargetAddress(account || "");
+    setIssueTargetAddress("");
+   
+
+    // Initialize (or load) Semaphore identity locally.
+    if (account) {
+      const storageKey = `semaphoreIdentity_${String(account).toLowerCase()}`;
+      const stored = localStorage.getItem(storageKey);
+      let identity;
+      if (stored) {
+        try {
+          identity = Identity.import(stored);
+        } catch {
+          identity = new Identity();
+          localStorage.setItem(storageKey, identity.export());
+        }
+      } else {
+        identity = new Identity();
+        localStorage.setItem(storageKey, identity.export());
+      }
+      setZkIdentityCommitment(identity.commitment.toString());
+    } else {
+      setZkIdentityCommitment("");
+    }
+  }, [account]);
+
+  useEffect(() => {
+    const refreshCurrentUserRole = async () => {
+      if (!account) {
+        setOnChainRoleLabel("No role selected");
+        setOnChainAttributeCount(0);
+        return;
+      }
+      try {
+        const signer = await getSigner();
+        const accessControl = await getAccessControl(signer);
+        const hashes = await accessControl.getUserAttributes(account);
+        const hashList = Array.isArray(hashes) ? hashes.map((h) => String(h)) : [];
+        setOnChainAttributeCount(hashList.length);
+        setOnChainRoleLabel(inferRoleLabelFromHashedAttributes(hashList));
+      } catch {
+        setOnChainRoleLabel("No role selected");
+        setOnChainAttributeCount(0);
+      }
+    };
+
+    refreshCurrentUserRole();
   }, [account]);
 
   useEffect(() => {
@@ -179,7 +256,8 @@ export default function Settings({ account }) {
       return;
     }
 
-    if (!ethers.utils.isAddress(issueTargetAddress)) {
+    const normalizedTarget = normalizeAddress(issueTargetAddress);
+    if (!normalizedTarget) {
       toast.error("Enter a valid target wallet address for role issuance.");
       return;
     }
@@ -191,17 +269,43 @@ export default function Settings({ account }) {
     try {
       const signer = await getSigner();
       const accessControl = await getAccessControl(signer);
-      const tx = await accessControl.setUserAttributes(issueTargetAddress, hashed);
+      const tx = await accessControl.setUserAttributes(normalizedTarget, hashed);
       await tx.wait();
+      setIssueTargetAddress(normalizedTarget);
       toast.success(
         hashed.length > 0
-          ? `Role attributes issued to ${issueTargetAddress.slice(0, 8)}...${issueTargetAddress.slice(-6)}`
-          : `Role attributes cleared for ${issueTargetAddress.slice(0, 8)}...${issueTargetAddress.slice(-6)}`
+          ? `Role attributes issued to ${normalizedTarget.slice(0, 8)}...${normalizedTarget.slice(-6)}`
+          : `Role attributes cleared for ${normalizedTarget.slice(0, 8)}...${normalizedTarget.slice(-6)}`
       );
     } catch (err) {
       toast.error(err.message || "Failed to sync ABAC attributes");
     } finally {
       setSyncingAttributes(false);
+    }
+  };
+
+  const createZkGroup = async () => {
+    if (!account) return;
+    const duration = Number(zkGroupDuration);
+    if (!Number.isInteger(duration) || duration <= 0) {
+      toast.error("Enter a valid merkle tree duration in seconds (e.g. 3600).");
+      return;
+    }
+
+    // Any user can create a ZK group; this just returns an id bound to the Semaphore tree.
+    try {
+      const signer = await getSigner();
+      const accessControl = await getAccessControl(signer);
+      const tx = await accessControl.createZkGroup(duration);
+      const receipt = await tx.wait();
+      let groupId = null;
+      const ev = receipt?.events?.find?.((e) => e.event === "ZkGroupCreated");
+      if (ev?.args?.groupId !== undefined) {
+        groupId = ev.args.groupId.toString();
+      }
+      toast.success(groupId !== null ? `ZK group created: groupId=${groupId}` : "ZK group created.");
+    } catch (err) {
+      toast.error(err.message || "Failed to create ZK group");
     }
   };
 
@@ -222,9 +326,9 @@ export default function Settings({ account }) {
           <div>
             <div className="font-semibold text-gray-800">{displayName || "Anonymous"}</div>
             <div className="text-xs font-mono text-gray-400 mt-0.5">{account}</div>
-            <div className="text-xs text-gray-600 mt-1">Role: <span className="font-semibold">{currentRoleLabel}</span></div>
+            <div className="text-xs text-gray-600 mt-1">Role: <span className="font-semibold">{onChainRoleLabel}</span></div>
             <div className="text-xs text-gray-500 mt-0.5 break-words">
-              Attributes: {currentAttributeTags.length > 0 ? currentAttributeTags.join(", ") : "None"}
+              On-chain attributes: {onChainAttributeCount}
             </div>
             <div className="text-xs text-gray-400 mt-1">Avatar generated from your wallet address (blockies)</div>
           </div>
@@ -316,33 +420,72 @@ export default function Settings({ account }) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4">
-          {normalizedConfiguredAdmin && (
-            <div className="text-xs text-gray-500 mb-3">
-              Configured RBAC admin wallet: <span className="font-mono">{normalizedConfiguredAdmin}</span>
+        {canManageRoleIssuance ? (
+          <>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4">
+              {normalizedConfiguredAdmin && (
+                <div className="text-xs text-gray-500 mb-3">
+                  Configured RBAC admin wallet: <span className="font-mono">{normalizedConfiguredAdmin}</span>
+                </div>
+              )}
+              <div className="text-xs font-semibold text-gray-700 mb-1">Role Issuance Target Wallet</div>
+              <input
+                className="input-field font-mono text-xs"
+                value={issueTargetAddress}
+                onChange={(e) => setIssueTargetAddress(e.target.value)}
+                placeholder="0x..."
+              />
+              <div className="text-xs mt-2 text-gray-500">
+                Enter the recipient wallet address explicitly. Roles are issued to this target wallet, not automatically to the connected admin wallet.
+              </div>
             </div>
-          )}
-          <div className="text-xs font-semibold text-gray-700 mb-1">Role Issuance Target Wallet</div>
-          <input
-            className="input-field font-mono text-xs"
-            value={issueTargetAddress}
-            onChange={(e) => setIssueTargetAddress(e.target.value)}
-            placeholder="0x..."
-          />
-          <div className="text-xs mt-2 text-gray-500">
-            {!accountMatchesConfiguredAdmin && normalizedConfiguredAdmin
-              ? "Connected wallet does not match configured RBAC admin wallet."
-              : isTrustedIssuer
-              ? "This wallet is a trusted issuer and can assign on-chain role attributes."
-              : "This wallet is not a trusted issuer. Ask admin to call setTrustedIssuer(address, true)."}
+
+            <button onClick={syncAbacAttributes} disabled={syncingAttributes || !isTrustedIssuer} className="btn-primary inline-flex items-center gap-2">
+              {syncingAttributes
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Syncing...</>
+                : <><Shield className="w-4 h-4" /> Issue On-Chain Role Attributes</>}
+            </button>
+          </>
+        ) : (
+          <div className="text-xs text-gray-500">
+            Role issuance controls are visible only to the admin wallet.
           </div>
+        )}
+      </div>
+
+      <div className="card p-6 mb-6">
+        <div className="mb-4">
+          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-electric-500" /> Zero-Knowledge Identity
+          </h2>
+          <p className="text-xs text-gray-400 mt-1">
+            Your Semaphore identity is stored locally in this browser. Trusted issuers can add your identity commitment to role groups to enable ZK access proofs.
+          </p>
         </div>
 
-        <button onClick={syncAbacAttributes} disabled={syncingAttributes || !isTrustedIssuer || !accountMatchesConfiguredAdmin} className="btn-primary inline-flex items-center gap-2">
-          {syncingAttributes
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Syncing...</>
-            : <><Shield className="w-4 h-4" /> Issue On-Chain Role Attributes</>}
-        </button>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 mb-4">
+          <div className="text-xs font-semibold text-gray-700 mb-1">Identity commitment</div>
+          <div className="flex items-start gap-2">
+            <div className="flex-1 text-xs font-mono text-gray-600 break-words select-all">
+              {zkIdentityCommitment || "—"}
+            </div>
+            {zkIdentityCommitment && (
+              <button
+                type="button"
+                className="btn-icon border border-gray-200 rounded-lg p-1 hover:bg-gray-50"
+                onClick={() => {
+                  navigator.clipboard.writeText(zkIdentityCommitment);
+                  toast.success("Identity commitment copied");
+                }}
+              >
+                <Copy className="w-3.5 h-3.5 text-gray-500" />
+              </button>
+            )}
+          </div>
+          <div className="text-[10px] text-gray-400 mt-1">
+            Share this commitment with a trusted issuer so they can add you to a ZK group.
+          </div>
+        </div>
       </div>
 
       <div className="card p-6 mb-6">

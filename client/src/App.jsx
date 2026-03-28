@@ -91,7 +91,7 @@ export default function App() {
     }
   }, [navigate]);
 
-  const connectWallet = useCallback(async () => {
+  const connectWallet = useCallback(async () => {  //usecallback means
     try {
       const provider = await getProvider();
       const signer = provider.getSigner();

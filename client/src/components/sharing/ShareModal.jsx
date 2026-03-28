@@ -141,6 +141,10 @@ export default function ShareModal({ file, onClose, account }) {
   const [recipient, setRecipient] = useState("");
   const [expiry, setExpiry] = useState(86400);
   const [filePolicyAttrs, setFilePolicyAttrs] = useState([{ ...EMPTY_ATTR }]);
+  const [zkPolicyEnabled, setZkPolicyEnabled] = useState(false);
+  const [zkGroupId, setZkGroupId] = useState("");
+  const [zkGroups, setZkGroups] = useState([]);
+  const [zkGroupsLoading, setZkGroupsLoading] = useState(false);
 
   const [groups, setGroups] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -293,15 +297,50 @@ export default function ShareModal({ file, onClose, account }) {
     }
   }, [isGroupMode]);
 
+  // Load ZK groups so the sharer can pick one instead of typing.
+  useEffect(() => {
+    const loadZkGroups = async () => {
+      setZkGroupsLoading(true);
+      try {
+        const signer = await getSigner();
+        const accessControl = await getAccessControl(signer);
+        const filter = accessControl.filters.ZkGroupCreated();
+        const events = await accessControl.queryFilter(filter, 0, "latest");
+        const groups = [];
+        for (const ev of events) {
+          const idBN = ev?.args?.groupId;
+          const durBN = ev?.args?.merkleTreeDuration;
+          if (idBN === undefined) continue;
+          groups.push({
+            groupId: idBN.toString(),
+            durationSeconds: durBN ? Number(durBN.toString()) : null,
+          });
+        }
+        const dedup = [];
+        const seen = new Set();
+        for (const g of groups) {
+          if (seen.has(g.groupId)) continue;
+          seen.add(g.groupId);
+          dedup.push(g);
+        }
+        setZkGroups(dedup);
+      } catch {
+        setZkGroups([]);
+      } finally {
+        setZkGroupsLoading(false);
+      }
+    };
+    if (requiresPolicy) {
+      loadZkGroups();
+    }
+  }, [requiresPolicy]);
+
   const resolveRoleRecipients = async (accessControl, requesterAddress, policyHashes) => {
     const requester = String(requesterAddress || "").toLowerCase();
-    const filter = accessControl.filters.AttributesSet(null);
-    const events = await accessControl.queryFilter(filter, 0, "latest");
-
-    const seen = new Set();
+    const candidatesRaw = await accessControl.getKnownAttributeUsers();
     const candidates = [];
-    for (const ev of events) {
-      const user = ev?.args?.user;
+    const seen = new Set();
+    for (const user of (Array.isArray(candidatesRaw) ? candidatesRaw : [])) {
       if (!user) continue;
       const normalized = String(user).toLowerCase();
       if (normalized === requester) continue;
@@ -337,6 +376,18 @@ export default function ShareModal({ file, onClose, account }) {
       setTxStatus({ step: currentStep, done: false, error: null });
       const txPolicy = await accessControl.definePolicy(file.id, policyHashes);
       await txPolicy.wait();
+
+      if (zkPolicyEnabled) {
+        const groupIdNum = Number(zkGroupId);
+        if (!Number.isInteger(groupIdNum) || groupIdNum < 0) {
+          throw new Error("Enter a valid Semaphore groupId for ZK policy");
+        }
+        const txZk = await accessControl.defineZkPolicy(file.id, groupIdNum, true);
+        await txZk.wait();
+      } else {
+        // Disable any previous ZK policy on the file if toggled off.
+        await (await accessControl.defineZkPolicy(file.id, 0, false)).wait().catch(() => {});
+      }
     }
 
     if (isDirectRoleMode) {
@@ -391,6 +442,17 @@ export default function ShareModal({ file, onClose, account }) {
       setTxStatus({ step: currentStep, done: false, error: null });
       const txPolicy = await accessControl.definePolicy(file.id, policyHashes);
       await txPolicy.wait();
+
+      if (zkPolicyEnabled) {
+        const groupIdNum = Number(zkGroupId);
+        if (!Number.isInteger(groupIdNum) || groupIdNum < 0) {
+          throw new Error("Enter a valid Semaphore groupId for ZK policy");
+        }
+        const txZk = await accessControl.defineZkPolicy(file.id, groupIdNum, true);
+        await txZk.wait();
+      } else {
+        await (await accessControl.defineZkPolicy(file.id, 0, false)).wait().catch(() => {});
+      }
     }
 
     currentStep = policyHashes.length > 0 ? 2 : 1;
@@ -608,6 +670,52 @@ export default function ShareModal({ file, onClose, account }) {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {requiresPolicy && (
+                <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold text-gray-700">Zero-knowledge access (Semaphore)</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        If enabled, recipients must prove membership in a Semaphore ZK group before download.
+                      </div>
+                    </div>
+                    <label className="text-xs font-semibold text-gray-700 flex items-center gap-2 select-none">
+                      <input
+                        type="checkbox"
+                        checked={zkPolicyEnabled}
+                        onChange={(e) => setZkPolicyEnabled(e.target.checked)}
+                      />
+                      Enable
+                    </label>
+                  </div>
+                  {zkPolicyEnabled && (
+                    <div className="space-y-2">
+                      <select
+                        className="input-field text-xs"
+                        value={zkGroupId}
+                        onChange={(e) => setZkGroupId(e.target.value)}
+                      >
+                        <option value="">
+                          {zkGroupsLoading ? "Loading ZK groups…" : "Select a ZK group (created in Settings)"}
+                        </option>
+                        {zkGroups.map((g) => (
+                          <option key={g.groupId} value={g.groupId}>
+                            groupId {g.groupId}
+                            {g.durationSeconds ? ` · TTL ${(g.durationSeconds / 3600).toFixed(1)}h` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="input-field text-xs"
+                        placeholder="Or enter groupId manually"
+                        value={zkGroupId}
+                        onChange={(e) => setZkGroupId(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

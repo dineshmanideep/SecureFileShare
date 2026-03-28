@@ -311,18 +311,69 @@ receivedSharesRouter.get("/received-shares", authMiddleware, async (req, res) =>
             provider
         );
 
-        // Query AccessGranted events where recipient = userAddress
-        const filter = accessControl.filters.AccessGranted(null, userAddress);
-        const events = await accessControl.queryFilter(filter, 0, "latest");
+        // Query AccessGranted/AccessRevoked events for this recipient.
+        const grantFilter = accessControl.filters.AccessGranted(null, userAddress);
+        const revokeFilter = accessControl.filters.AccessRevoked(null, userAddress);
+        const grantEvents = await accessControl.queryFilter(grantFilter, 0, "latest");
+        const revokeEvents = await accessControl.queryFilter(revokeFilter, 0, "latest");
 
-        // Deduplicate file IDs
-        const fileIds = [...new Set(events.map((e) => e.args.fileId.toNumber()))];
+        const latestGrantByFile = new Map();
+        for (const ev of grantEvents) {
+            const id = ev?.args?.fileId?.toNumber?.();
+            if (id === undefined) continue;
+            const prev = latestGrantByFile.get(id);
+            if (
+                !prev ||
+                ev.blockNumber > prev.blockNumber ||
+                (ev.blockNumber === prev.blockNumber && (ev.logIndex || 0) > (prev.logIndex || 0))
+            ) {
+                latestGrantByFile.set(id, ev);
+            }
+        }
+
+        const latestRevokeByFile = new Map();
+        for (const ev of revokeEvents) {
+            const id = ev?.args?.fileId?.toNumber?.();
+            if (id === undefined) continue;
+            const prev = latestRevokeByFile.get(id);
+            if (
+                !prev ||
+                ev.blockNumber > prev.blockNumber ||
+                (ev.blockNumber === prev.blockNumber && (ev.logIndex || 0) > (prev.logIndex || 0))
+            ) {
+                latestRevokeByFile.set(id, ev);
+            }
+        }
+
+        // Include only files with an active grant (latest grant newer than latest revoke).
+        const fileIds = [...latestGrantByFile.keys()].filter((id) => {
+            const grantEv = latestGrantByFile.get(id);
+            const revokeEv = latestRevokeByFile.get(id);
+            if (!grantEv) return false;
+            if (!revokeEv) return true;
+            if (grantEv.blockNumber > revokeEv.blockNumber) return true;
+            if (grantEv.blockNumber < revokeEv.blockNumber) return false;
+            return (grantEv.logIndex || 0) > (revokeEv.logIndex || 0);
+        });
 
         const files = await Promise.all(
             fileIds.map(async (id) => {
                 try {
+                    const [zkEnabled] = await accessControl.getZkPolicy(id);
+                    const zkPolicyEnabled = Boolean(zkEnabled);
                     const currentlyAllowed = await accessControl.checkAccess(userAddress, id);
-                    if (!currentlyAllowed) return null;
+
+                    const filePolicy = await accessControl.getFilePolicy(id);
+                    const hasAttributePolicy = Array.isArray(filePolicy) && filePolicy.length > 0;
+                    if (hasAttributePolicy) {
+                        const userAttrs = await accessControl.getUserAttributes(userAddress);
+                        const abacAllowed = hasAllPolicyAttributes(userAttrs, filePolicy);
+                        if (!abacAllowed) return null;
+                    }
+
+                    // For ZK-enabled files, allow listing even before verifyZkAccess(),
+                    // so user can see and trigger proof flow from the UI.
+                    if (!currentlyAllowed && !zkPolicyEnabled) return null;
 
                     const data = await fileRegistry.getFile(id);
                     if (data.isDeleted) return null;
@@ -354,6 +405,7 @@ receivedSharesRouter.get("/received-shares", authMiddleware, async (req, res) =>
                         uploadTimestamp: data.timestamp.toNumber() * 1000,
                         isAccessValid,
                         expiryTimestamp,
+                        requiresZkProof: zkPolicyEnabled && !currentlyAllowed,
                     };
                 } catch {
                     return null;
