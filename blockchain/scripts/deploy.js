@@ -6,11 +6,23 @@ const rpcUrl = process.env.HARDHAT_RPC_URL || "http://127.0.0.1:8545";
 const chainId = Number(process.env.HARDHAT_CHAIN_ID || network.config.chainId || 1337);
 const frontendUrl = process.env.VITE_FRONTEND_URL || `http://localhost:${process.env.VITE_FRONTEND_PORT || 5173}`;
 const configuredRbacAdminWallet = process.env.RBAC_ADMIN_WALLET || process.env.VITE_RBAC_ADMIN_WALLET || "";
+const configuredRelayerPrivateKey = process.env.ZK_RELAYER_PRIVATE_KEY || process.env.RELAYER_PRIVATE_KEY || "";
 
 function normalizeAddress(address) {
     if (!address) return "";
     try {
         return ethers.getAddress(address.trim());
+    } catch {
+        return "";
+    }
+}
+
+function privateKeyToAddress(pk) {
+    const value = String(pk || "").trim();
+    if (!value) return "";
+    try {
+        const normalizedPk = value.startsWith("0x") ? value : `0x${value}`;
+        return new ethers.Wallet(normalizedPk).address;
     } catch {
         return "";
     }
@@ -66,6 +78,18 @@ async function main() {
     await accessControl.waitForDeployment();
     const accessControlAddr = await accessControl.getAddress();
     console.log("✅ FileAccessControl deployed to:", accessControlAddr);
+
+    const relayerAddress = privateKeyToAddress(configuredRelayerPrivateKey);
+    if (configuredRelayerPrivateKey && !relayerAddress) {
+        console.log("⚠️ ZK_RELAYER_PRIVATE_KEY/RELAYER_PRIVATE_KEY is invalid; skipping setZkRelayer.");
+    } else if (relayerAddress) {
+        console.log(`🔁 Configuring ZK relayer wallet: ${relayerAddress}`);
+        const txRelayer = await accessControl.setZkRelayer(relayerAddress);
+        await txRelayer.wait();
+        console.log("✅ ZK relayer configured in AccessControl");
+    } else {
+        console.log("ℹ️ No relayer private key configured. ZK relayed member-add will remain disabled until setZkRelayer is called.");
+    }
 
     // Optionally auto-whitelist an RBAC admin wallet as a trusted issuer.
     // In strict mode, only trusted issuers can set role attributes.

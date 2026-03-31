@@ -1,0 +1,12 @@
+blockscout:
+  image: blockscout/blockscout:latest
+  depends_on:
+    - blockscout-db
+  environment:
+    ETHEREUM_JSONRPC_HTTP_URL: "http://host.docker.internal:8545/"
+    DATABASE_URL: "postgresql://postgres:postgres@blockscout-db:5432/blockscout"
+    SECRET_KEY_BASE: "very_secret_key"
+  ports:
+    - "4000:4000"
+  extra_hosts:
+    - "host.docker.internal:host-gateway"

@@ -332,11 +332,7 @@ export default function MyFiles({ account, searchQuery }) {
           <p className="text-sm text-gray-400 mb-4">
             {searchQuery ? `No files match "${searchQuery}"` : "Upload your first file — encrypted end-to-end"}
           </p>
-          {!searchQuery && (
-            <label className="btn-primary cursor-pointer flex items-center gap-2 mx-auto w-fit">
-              <Upload className="w-4 h-4" /> Upload File
-            </label>
-          )}
+        
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

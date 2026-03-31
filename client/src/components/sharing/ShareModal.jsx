@@ -143,8 +143,6 @@ export default function ShareModal({ file, onClose, account }) {
   const [filePolicyAttrs, setFilePolicyAttrs] = useState([{ ...EMPTY_ATTR }]);
   const [zkPolicyEnabled, setZkPolicyEnabled] = useState(false);
   const [zkGroupId, setZkGroupId] = useState("");
-  const [zkGroups, setZkGroups] = useState([]);
-  const [zkGroupsLoading, setZkGroupsLoading] = useState(false);
 
   const [groups, setGroups] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -296,44 +294,6 @@ export default function ShareModal({ file, onClose, account }) {
       loadGroups();
     }
   }, [isGroupMode]);
-
-  // Load ZK groups so the sharer can pick one instead of typing.
-  useEffect(() => {
-    const loadZkGroups = async () => {
-      setZkGroupsLoading(true);
-      try {
-        const signer = await getSigner();
-        const accessControl = await getAccessControl(signer);
-        const filter = accessControl.filters.ZkGroupCreated();
-        const events = await accessControl.queryFilter(filter, 0, "latest");
-        const groups = [];
-        for (const ev of events) {
-          const idBN = ev?.args?.groupId;
-          const durBN = ev?.args?.merkleTreeDuration;
-          if (idBN === undefined) continue;
-          groups.push({
-            groupId: idBN.toString(),
-            durationSeconds: durBN ? Number(durBN.toString()) : null,
-          });
-        }
-        const dedup = [];
-        const seen = new Set();
-        for (const g of groups) {
-          if (seen.has(g.groupId)) continue;
-          seen.add(g.groupId);
-          dedup.push(g);
-        }
-        setZkGroups(dedup);
-      } catch {
-        setZkGroups([]);
-      } finally {
-        setZkGroupsLoading(false);
-      }
-    };
-    if (requiresPolicy) {
-      loadZkGroups();
-    }
-  }, [requiresPolicy]);
 
   const resolveRoleRecipients = async (accessControl, requesterAddress, policyHashes) => {
     const requester = String(requesterAddress || "").toLowerCase();
@@ -591,9 +551,7 @@ export default function ShareModal({ file, onClose, account }) {
                     <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                       <Users className="w-4 h-4 text-electric-500" /> Group selection
                     </h3>
-                    <a href="/groups" className="text-xs text-electric-600 hover:text-electric-700 font-medium inline-flex items-center gap-1">
-                      <Plus className="w-3.5 h-3.5" /> Manage Groups
-                    </a>
+                   
                   </div>
 
                   <select
@@ -693,27 +651,15 @@ export default function ShareModal({ file, onClose, account }) {
                   </div>
                   {zkPolicyEnabled && (
                     <div className="space-y-2">
-                      <select
-                        className="input-field text-xs"
-                        value={zkGroupId}
-                        onChange={(e) => setZkGroupId(e.target.value)}
-                      >
-                        <option value="">
-                          {zkGroupsLoading ? "Loading ZK groups…" : "Select a ZK group (created in Settings)"}
-                        </option>
-                        {zkGroups.map((g) => (
-                          <option key={g.groupId} value={g.groupId}>
-                            groupId {g.groupId}
-                            {g.durationSeconds ? ` · TTL ${(g.durationSeconds / 3600).toFixed(1)}h` : ""}
-                          </option>
-                        ))}
-                      </select>
                       <input
                         className="input-field text-xs"
-                        placeholder="Or enter groupId manually"
+                        placeholder="Enter Semaphore groupId manually"
                         value={zkGroupId}
                         onChange={(e) => setZkGroupId(e.target.value)}
                       />
+                      <div className="text-[11px] text-gray-500">
+                        Group discovery is disabled for privacy. Use the known groupId.
+                      </div>
                     </div>
                   )}
                 </div>

@@ -288,3 +288,166 @@ export async function semaphoreValidateProof(semaphoreContract, groupId, proof) 
         throw new Error(`Failed to call Semaphore.validateProof: ${err.message}`);
     }
 }
+
+function serializeSemaphoreProof(proof) {
+    if (!proof) throw new Error("Invalid proof");
+    return {
+        merkleTreeDepth: Number(proof.merkleTreeDepth),
+        merkleTreeRoot: proof.merkleTreeRoot?.toString ? proof.merkleTreeRoot.toString() : String(proof.merkleTreeRoot),
+        nullifier: proof.nullifier?.toString ? proof.nullifier.toString() : String(proof.nullifier),
+        message: proof.message?.toString ? proof.message.toString() : String(proof.message),
+        scope: proof.scope?.toString ? proof.scope.toString() : String(proof.scope),
+        points: Array.isArray(proof.points) ? proof.points.map((p) => (p?.toString ? p.toString() : String(p))) : [],
+    };
+}
+
+export async function relaySemaphoreValidateProof({ signer, fileId, groupId, proof }) {
+    if (!signer) throw new Error("Signer is required for relayer authentication");
+    if (fileId === undefined || fileId === null) throw new Error("fileId is required");
+    if (!groupId) throw new Error("groupId is required");
+    if (!proof) throw new Error("proof is required");
+
+    const auth = await signAuthMessage(signer);
+    const res = await fetch("/api/zk-relayer/validate-proof", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-user-address": auth.address,
+            "x-signature": auth.signature,
+            "x-message": auth.message,
+        },
+        body: JSON.stringify({
+            fileId: Number(fileId),
+            groupId: String(groupId),
+            proof: serializeSemaphoreProof(proof),
+        }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error(data.error || "Relayer proof validation failed");
+        err.status = res.status;
+        throw err;
+    }
+    if (!data.txHash) {
+        throw new Error("Relayer response missing txHash");
+    }
+    return data;
+}
+
+export async function relayRegisterZkFileOnChain({ signer, cids, fileHashHex, fileName, fileSize, groupId }) {
+    if (!signer) throw new Error("Signer is required for relayer authentication");
+    if (!Array.isArray(cids) || cids.length === 0) throw new Error("cids must be a non-empty array");
+    if (!fileHashHex) throw new Error("fileHashHex is required");
+    if (!fileName) throw new Error("fileName is required");
+    if (!Number.isInteger(Number(fileSize)) || Number(fileSize) < 0) throw new Error("fileSize must be a non-negative integer");
+    if (!groupId) throw new Error("groupId is required");
+
+    const auth = await signAuthMessage(signer);
+    const res = await fetch("/api/zk-relayer/register-zk-file", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-user-address": auth.address,
+            "x-signature": auth.signature,
+            "x-message": auth.message,
+        },
+        body: JSON.stringify({
+            cids,
+            fileHashHex,
+            fileName,
+            fileSize: Number(fileSize),
+            groupId: String(groupId),
+        }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error(data.error || "Relayer ZK file registration failed");
+        err.status = res.status;
+        throw err;
+    }
+    if (!data.fileId) {
+        throw new Error("Relayer response missing fileId");
+    }
+    return data;
+}
+
+export async function relayCreateZkGroupWithLeader({ signer, merkleTreeDuration, leaderCommitment }) {
+    if (!signer) throw new Error("Signer is required for relayer authentication");
+    if (!Number.isInteger(Number(merkleTreeDuration)) || Number(merkleTreeDuration) <= 0) {
+        throw new Error("merkleTreeDuration must be a positive integer");
+    }
+    if (!leaderCommitment) throw new Error("leaderCommitment is required");
+
+    const auth = await signAuthMessage(signer);
+    const res = await fetch("/api/zk-relayer/create-zk-group", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-user-address": auth.address,
+            "x-signature": auth.signature,
+            "x-message": auth.message,
+        },
+        body: JSON.stringify({
+            merkleTreeDuration: Number(merkleTreeDuration),
+            leaderCommitment: String(leaderCommitment),
+        }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error(data.error || "Relayer create ZK group failed");
+        err.status = res.status;
+        throw err;
+    }
+    if (!data.groupId) {
+        throw new Error("Relayer response missing groupId");
+    }
+    return data;
+}
+
+export async function relayAddZkMemberByLeaderProof({
+    signer,
+    groupId,
+    identityCommitment,
+    nonce,
+    deadline,
+    leaderProof,
+}) {
+    if (!signer) throw new Error("Signer is required for relayer authentication");
+    if (!groupId) throw new Error("groupId is required");
+    if (!identityCommitment) throw new Error("identityCommitment is required");
+    if (!nonce) throw new Error("nonce is required");
+    if (!deadline) throw new Error("deadline is required");
+    if (!leaderProof) throw new Error("leaderProof is required");
+
+    const auth = await signAuthMessage(signer);
+    const res = await fetch("/api/zk-relayer/add-zk-member", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-user-address": auth.address,
+            "x-signature": auth.signature,
+            "x-message": auth.message,
+        },
+        body: JSON.stringify({
+            groupId: String(groupId),
+            identityCommitment: String(identityCommitment),
+            nonce: String(nonce),
+            deadline: String(deadline),
+            leaderProof: serializeSemaphoreProof(leaderProof),
+        }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error(data.error || "Relayer add member failed");
+        err.status = res.status;
+        throw err;
+    }
+    if (!data.txHash) {
+        throw new Error("Relayer response missing txHash");
+    }
+    return data;
+}

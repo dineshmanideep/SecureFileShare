@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("FileAccessControl ZK policy (Semaphore-gated)", function () {
-  it("blocks access until verifyZkAccess succeeds", async function () {
+  it("validates proof without persisting per-wallet ZK state", async function () {
     const [owner, issuer, recipient] = await ethers.getSigners();
 
     const MockSemaphore = await ethers.getContractFactory("MockSemaphore");
@@ -26,12 +26,12 @@ describe("FileAccessControl ZK policy (Semaphore-gated)", function () {
     // Enable ZK policy on the file (groupId arbitrary in mock).
     await (await ac.connect(owner).defineZkPolicy(fileId, 0, true)).wait();
 
-    // Without proof verification, access is blocked.
-    expect(await ac.checkAccess(recipient.address, fileId)).to.equal(false);
+    // Access control no longer depends on persisted per-wallet ZK verification state.
+    expect(await ac.checkAccess(recipient.address, fileId)).to.equal(true);
 
-    // Build a dummy proof bound to (fileId, recipient).
+    // Build a dummy proof with file-bound message and arbitrary non-zero scope.
     const expectedMessage = ethers.keccak256(
-      ethers.solidityPacked(["uint256", "address"], [fileId, recipient.address])
+      ethers.solidityPacked(["uint256"], [fileId])
     );
 
     const proof = {
@@ -39,13 +39,13 @@ describe("FileAccessControl ZK policy (Semaphore-gated)", function () {
       merkleTreeRoot: 1,
       nullifier: 123,
       message: BigInt(expectedMessage).toString(),
-      scope: fileId,
+      scope: 999,
       points: [0, 0, 0, 0, 0, 0, 0, 0],
     };
 
     await (await ac.connect(recipient).verifyZkAccess(fileId, proof)).wait();
 
-    // Now access is allowed (still requires explicit grant in this system).
+    // Access state remains unchanged (still requires explicit grant/ABAC rules).
     expect(await ac.checkAccess(recipient.address, fileId)).to.equal(true);
   });
 });

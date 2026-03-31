@@ -1,3 +1,4 @@
 */node_modules
 blockchain/artifacts
 .env
+dist

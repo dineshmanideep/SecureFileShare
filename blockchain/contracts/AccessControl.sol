@@ -45,18 +45,29 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         uint256 groupId;
     }
 
+    struct ZkGroupLeaderConfig {
+        bool enabled;
+        uint256 leaderCommitment;
+        uint256 leaderAuthGroupId;
+    }
+
     /// @dev fileId => ZK policy (Semaphore group requirement)
     mapping(uint256 => ZkPolicy) private _zkPolicies;
 
-    /// @dev fileId => user => whether a valid ZK proof was verified on-chain
+    /// @dev Deprecated: retained for ABI/storage compatibility (no longer used for auth decisions)
     mapping(uint256 => mapping(address => bool)) private _zkVerifiedAccess;
 
     /// @dev zk group creator/manager
     mapping(uint256 => address) private _zkGroupCreator;
 
-    /// @dev optional wallet -> semaphore identity commitment registry
-    mapping(address => uint256) private _registeredIdentityCommitments;
-    mapping(address => bool) private _hasRegisteredIdentityCommitment;
+    /// @dev per-zk-group leader authorization settings
+    mapping(uint256 => ZkGroupLeaderConfig) private _zkGroupLeaderConfig;
+
+    /// @dev tracks used leader-proof nullifiers per target group
+    mapping(uint256 => mapping(uint256 => bool)) private _usedLeaderProofNullifier;
+
+    /// @dev Relayer wallet permitted to execute relayed leader-authorized member adds.
+    address public zkRelayer;
 
     // ─────────────────────────────── Events ──────────────────────────────
 
@@ -70,7 +81,9 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
     event ZkAccessVerified(uint256 indexed fileId, address indexed user, uint256 indexed groupId, uint256 nullifier);
     event ZkGroupCreated(uint256 indexed groupId, uint256 merkleTreeDuration);
     event ZkGroupMemberAdded(uint256 indexed groupId, address indexed manager, uint256 identityCommitment);
-    event ZkIdentityRegistered(address indexed user, uint256 identityCommitment);
+    event ZkGroupLeaderConfigured(uint256 indexed groupId, uint256 indexed leaderAuthGroupId, uint256 leaderCommitment);
+    event ZkRelayerUpdated(address indexed relayer);
+    event ZkGroupMemberAddedByLeaderProof(uint256 indexed groupId, uint256 indexed nullifier, uint256 identityCommitment, uint256 nonce);
 
     // ─────────────────────────────── Modifiers ───────────────────────────
 
@@ -81,6 +94,11 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
 
     modifier onlyTrustedIssuer() {
         require(_trustedIssuers[msg.sender], "ABAC: caller is not a trusted issuer");
+        _;
+    }
+
+    modifier onlyZkRelayer() {
+        require(msg.sender == zkRelayer, "ZK: caller not relayer");
         _;
     }
 
@@ -112,6 +130,12 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         emit SemaphoreUpdated(semaphoreAddress);
     }
 
+    function setZkRelayer(address relayer) external onlyOwner {
+        require(relayer != address(0), "ZK: invalid relayer");
+        zkRelayer = relayer;
+        emit ZkRelayerUpdated(relayer);
+    }
+
     /**
      * @notice Create a new Semaphore group.
      * @dev Any user can create a ZK group; this contract is recorded as admin.
@@ -122,6 +146,35 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         groupId = semaphore.createGroup(address(this), merkleTreeDuration);
         _zkGroupCreator[groupId] = msg.sender;
         emit ZkGroupCreated(groupId, merkleTreeDuration);
+    }
+
+    /**
+     * @notice Create a ZK group with strict leader-proof authorization for future member adds.
+     * @dev A dedicated leader-auth group is created with exactly one member: leaderCommitment.
+     *      Future relayed member additions must provide a valid proof from this leader-auth group.
+     */
+    function createZkGroupWithLeader(uint256 merkleTreeDuration, uint256 leaderCommitment)
+        external
+        returns (uint256 groupId)
+    {
+        require(address(semaphore) != address(0), "ZK: semaphore not configured");
+        require(leaderCommitment != 0, "ZK: invalid leader commitment");
+
+        groupId = semaphore.createGroup(address(this), merkleTreeDuration);
+        _zkGroupCreator[groupId] = msg.sender;
+        emit ZkGroupCreated(groupId, merkleTreeDuration);
+
+        uint256 leaderAuthGroupId = semaphore.createGroup(address(this), merkleTreeDuration);
+        semaphore.addMember(leaderAuthGroupId, leaderCommitment);
+        semaphore.addMember(groupId, leaderCommitment);
+
+        _zkGroupLeaderConfig[groupId] = ZkGroupLeaderConfig({
+            enabled: true,
+            leaderCommitment: leaderCommitment,
+            leaderAuthGroupId: leaderAuthGroupId
+        });
+
+        emit ZkGroupLeaderConfigured(groupId, leaderAuthGroupId, leaderCommitment);
     }
 
     /**
@@ -193,54 +246,65 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
      * @dev This binds off-chain Semaphore identities to your on-chain access control.
      */
     function addZkGroupMember(uint256 groupId, uint256 identityCommitment) external onlyZkGroupManager(groupId) {
+        groupId;
+        identityCommitment;
+        revert("ZK: direct add disabled; use relayed leader proof");
+    }
+
+    /**
+     * @notice Add a member to a ZK group using a relayed, leader-authorized zero-knowledge proof.
+     * @dev Callable only by configured relayer wallet. Proof is verified against the
+     *      dedicated leader-auth group created via createZkGroupWithLeader.
+     */
+    function relayedAddZkGroupMember(
+        uint256 groupId,
+        uint256 identityCommitment,
+        ISemaphore.SemaphoreProof calldata leaderProof,
+        uint256 nonce,
+        uint256 deadline
+    ) external onlyZkRelayer nonReentrant {
         require(address(semaphore) != address(0), "ZK: semaphore not configured");
+        require(identityCommitment != 0, "ZK: invalid commitment");
+        require(deadline >= block.timestamp, "ZK: leader proof expired");
+
+        ZkGroupLeaderConfig memory cfg = _zkGroupLeaderConfig[groupId];
+        require(cfg.enabled, "ZK: leader auth not configured");
+
+        uint256 expectedMessage = uint256(
+            keccak256(abi.encodePacked("ZK_LEADER_ADD_MEMBER", groupId, identityCommitment, nonce, deadline))
+        );
+        require(leaderProof.message == expectedMessage, "ZK: wrong leader proof message");
+
+        uint256 expectedScope = uint256(
+            keccak256(abi.encodePacked("ZK_LEADER_SCOPE", groupId, nonce, deadline))
+        );
+        require(leaderProof.scope == expectedScope, "ZK: wrong leader proof scope");
+
+        require(!_usedLeaderProofNullifier[groupId][leaderProof.nullifier], "ZK: leader proof already used");
+        semaphore.validateProof(cfg.leaderAuthGroupId, leaderProof);
+        _usedLeaderProofNullifier[groupId][leaderProof.nullifier] = true;
+
         semaphore.addMember(groupId, identityCommitment);
         emit ZkGroupMemberAdded(groupId, msg.sender, identityCommitment);
+        emit ZkGroupMemberAddedByLeaderProof(groupId, leaderProof.nullifier, identityCommitment, nonce);
     }
 
     /**
-     * @notice Register your wallet's Semaphore identity commitment on-chain.
-     * @dev Lets group managers add users by wallet address later.
-     */
-    function registerMyZkIdentity(uint256 identityCommitment) external {
-        require(identityCommitment != 0, "ZK: invalid commitment");
-        _registeredIdentityCommitments[msg.sender] = identityCommitment;
-        _hasRegisteredIdentityCommitment[msg.sender] = true;
-        emit ZkIdentityRegistered(msg.sender, identityCommitment);
-    }
-
-    /**
-     * @notice Group manager adds a registered wallet to a ZK group.
-     */
-    function addRegisteredUserToZkGroup(uint256 groupId, address user)
-        external
-        onlyZkGroupManager(groupId)
-    {
-        require(user != address(0), "ZK: invalid user");
-        require(_hasRegisteredIdentityCommitment[user], "ZK: user has no registered commitment");
-        semaphore.addMember(groupId, _registeredIdentityCommitments[user]);
-        emit ZkGroupMemberAdded(groupId, msg.sender, _registeredIdentityCommitments[user]);
-    }
-
-    /**
-     * @notice Verify a user's ZK proof on-chain and mark them as ZK-verified for this file.
-     * @dev The proof message is bound to (fileId, msg.sender) to prevent proof re-use across users.
-     *      The proof scope is set to fileId so nullifiers are per-file.
+     * @notice Verify a user's ZK proof on-chain for this file policy.
+     * @dev Message is file-bound (keccak256(fileId)) and not wallet-bound.
+     *      This function validates the proof and emits an event only.
      */
     function verifyZkAccess(uint256 fileId, ISemaphore.SemaphoreProof calldata proof) external nonReentrant {
         ZkPolicy memory p = _zkPolicies[fileId];
         require(p.enabled, "ZK: policy not enabled");
         require(address(semaphore) != address(0), "ZK: semaphore not configured");
 
-        // Bind the proof to this file + this caller (prevents sharing a proof between wallets).
-        uint256 expectedMessage = uint256(keccak256(abi.encodePacked(fileId, msg.sender)));
+        uint256 expectedMessage = uint256(keccak256(abi.encodePacked(fileId)));
         require(proof.message == expectedMessage, "ZK: wrong message");
-        require(proof.scope == uint256(fileId), "ZK: wrong scope");
+        require(proof.scope != 0, "ZK: invalid scope");
 
-        // This reverts on invalid proof or reused nullifier.
         semaphore.validateProof(p.groupId, proof);
 
-        _zkVerifiedAccess[fileId][msg.sender] = true;
         emit ZkAccessVerified(fileId, msg.sender, p.groupId, proof.nullifier);
     }
 
@@ -285,10 +349,6 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         // File owner always has access
         if (_fileOwner[fileId] == user) return true;
 
-        // If ZK policy is enabled, require a prior on-chain proof validation for this (file,user).
-        ZkPolicy memory zp = _zkPolicies[fileId];
-        if (zp.enabled && !_zkVerifiedAccess[fileId][user]) return false;
-
         bool hasExplicitGrant = _accessGrants[fileId][user];
 
         // With no policy, explicit grant is enough.
@@ -313,13 +373,15 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Check access strictly through ZK verification state for a file.
-     * @dev Used by ZK-public file flow where backend does not persist uploader identity.
+     * @notice Deprecated helper retained for backward compatibility.
+     * @dev This contract no longer persists per-wallet ZK verification state.
      */
     function checkZkOnlyAccess(address user, uint256 fileId) external view returns (bool) {
         ZkPolicy memory zp = _zkPolicies[fileId];
         if (!zp.enabled) return false;
-        return _zkVerifiedAccess[fileId][user];
+        user;
+        fileId;
+        return false;
     }
 
     // ─────────────────────────── View Helpers ─────────────────────────────
@@ -345,12 +407,19 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         return _zkGroupCreator[groupId];
     }
 
-    function getRegisteredZkIdentity(address user) external view returns (uint256 commitment, bool isRegistered) {
-        return (_registeredIdentityCommitments[user], _hasRegisteredIdentityCommitment[user]);
+    function getZkGroupLeaderConfig(uint256 groupId)
+        external
+        view
+        returns (bool enabled, uint256 leaderCommitment, uint256 leaderAuthGroupId)
+    {
+        ZkGroupLeaderConfig memory cfg = _zkGroupLeaderConfig[groupId];
+        return (cfg.enabled, cfg.leaderCommitment, cfg.leaderAuthGroupId);
     }
 
-    function isZkVerified(uint256 fileId, address user) external view returns (bool) {
-        return _zkVerifiedAccess[fileId][user];
+    function isZkVerified(uint256 fileId, address user) external pure returns (bool) {
+        fileId;
+        user;
+        return false;
     }
 
     function getFileGrantees(uint256 fileId) external view returns (address[] memory) {

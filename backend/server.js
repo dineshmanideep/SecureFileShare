@@ -13,6 +13,7 @@ const gdprRoute = require("./routes/gdpr");
 const materialsRoute = require("./routes/materials");
 const groupsRoute = require("./routes/groups");
 const zkPublicRoute = require("./routes/zkPublic");
+const zkRelayerRoute = require("./routes/zkRelayer");
 
 // Services
 const gdprSvc = require("./services/gdprService");
@@ -127,6 +128,7 @@ app.use("/api/gdpr", strictLimiter, gdprRoute);
 app.use("/api/materials", materialsRoute);
 app.use("/api/groups", groupsRoute);
 app.use("/api/zk-public", strictLimiter, zkPublicRoute);
+app.use("/api/zk-relayer", strictLimiter, zkRelayerRoute);
 
 // ─────────────────────────── Health Check ────────────────────────────────
 
@@ -169,6 +171,7 @@ app.listen(PORT, HOST, () => {
     console.log("   POST /api/zk-public/register – Finalize ZK-public upload");
     console.log("   GET  /api/zk-public/files  – List ZK-public files");
     console.log("   GET  /api/zk-public/download/:fileId – Download via ZK proof");
+    console.log("   POST /api/zk-relayer/validate-proof – Relay ZK proof tx to Semaphore");
     console.log("   POST /api/gdpr/erase       – GDPR right to erasure");
     console.log("   GET  /api/gdpr/export      – GDPR Article 20 export");
 });

@@ -8,13 +8,15 @@ import toast from "react-hot-toast";
 
 import {
   getSigner,
+  getAccessControl,
   getFileRegistry,
   getSemaphore,
+  relayAddZkMemberByLeaderProof,
+  relayCreateZkGroupWithLeader,
+  relayRegisterZkFileOnChain,
   signAuthMessage,
   verifyContractsDeployed,
-  NETWORK_CONFIG,
-  semaphoreCreateGroup,
-  semaphoreAddMember,
+  relaySemaphoreValidateProof,
   semaphoreValidateProof,
 } from "../utils/blockchain";
 
@@ -32,6 +34,27 @@ function stageToIndex(stageName) {
   if (s.includes("ipfs") || s.includes("upload") || s.includes("send")) return 3;
   if (s.includes("block") || s.includes("chain") || s.includes("wait") || s.includes("register") || s.includes("gdpr") || s.includes("complete")) return 4;
   return 2;
+}
+
+function getOrCreateLocalSemaphoreIdentity(account) {
+  if (!account) throw new Error("Wallet is required");
+  const identityStorageKey = `semaphoreIdentity_${String(account).toLowerCase()}`;
+  const identityStored = localStorage.getItem(identityStorageKey);
+  let identity;
+
+  if (identityStored) {
+    try {
+      identity = Identity.import(identityStored);
+    } catch {
+      identity = new Identity();
+      localStorage.setItem(identityStorageKey, identity.export());
+    }
+  } else {
+    identity = new Identity();
+    localStorage.setItem(identityStorageKey, identity.export());
+  }
+
+  return identity;
 }
 
 export default function ZkPublicFiles({ account, searchQuery }) {
@@ -102,55 +125,58 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       const uploadData = await uploadRes.json();
       if (!uploadRes.ok) throw new Error(uploadData.error || "ZK upload failed");
 
-      updateProgress("Creating file-specific ZK access policy…", 62);
-      // NOTE: ZK files do NOT go through FileRegistry - they have no owner mapping
-      // Backend will generate a unique fileId internally
+      updateProgress("Preparing on-chain file registration…", 62);
 
       updateProgress("Setting up zero-knowledge identity…", 65);
-
-      const identityStorageKey = `semaphoreIdentity_${String(account).toLowerCase()}`;
-      let identity;
-      const identityStored = localStorage.getItem(identityStorageKey);
-      if (identityStored) {
-        try {
-          identity = Identity.import(identityStored);
-        } catch {
-          identity = new Identity();
-          localStorage.setItem(identityStorageKey, identity.export());
-        }
-      } else {
-        identity = new Identity();
-        localStorage.setItem(identityStorageKey, identity.export());
-      }
+      const identity = getOrCreateLocalSemaphoreIdentity(account);
+      const leaderCommitment = identity.commitment.toString();
 
       updateProgress("Creating ZK access group…", 75);
-      const semaphore = await getSemaphore(signer);
-      const userAddress = await signer.getAddress();
-      const createGroupTx = await semaphoreCreateGroup(semaphore, userAddress, 365 * 24 * 60 * 60);
-      const createGroupReceipt = await createGroupTx.wait();
-      
-      if (!createGroupReceipt || !createGroupReceipt.events) {
-        throw new Error("No events in group creation receipt");
-      }
-      
-      const groupEvent = createGroupReceipt.events.find((e) => e.event === "GroupCreated");
-      if (!groupEvent) {
-        throw new Error("GroupCreated event not found in receipt");
-      }
-      
-      const rawGroupId = groupEvent?.args?.groupId;
-      if (!rawGroupId) {
-        throw new Error("groupId not found in GroupCreated event args");
-      }
-      
-      const groupId = rawGroupId?.toString ? rawGroupId.toString() : String(rawGroupId || "");
+      const relayedGroup = await relayCreateZkGroupWithLeader({
+        signer,
+        merkleTreeDuration: 365 * 24 * 60 * 60,
+        leaderCommitment,
+      });
+      const groupId = String(relayedGroup.groupId || "");
       if (!groupId || !/^\d+$/.test(groupId)) {
         throw new Error(`Invalid ZK groupId format: "${groupId}"`);
       }
 
-      // Use helper to call Semaphore.addMember with proper error handling
-      const addMemberTx = await semaphoreAddMember(semaphore, groupId, identity.commitment.toString());
-      await addMemberTx.wait();
+      updateProgress("Writing ZK file metadata on-chain…", 86);
+      let newFileId = "";
+      try {
+        const relayed = await relayRegisterZkFileOnChain({
+          signer,
+          cids: uploadData.cids,
+          fileHashHex: uploadData.fileHashHex,
+          fileName: file.name,
+          fileSize: file.size,
+          groupId,
+        });
+        newFileId = String(relayed.fileId);
+      } catch (relayErr) {
+        const fileRegistry = await getFileRegistry(signer);
+        const accessControl = await getAccessControl(signer);
+        const fileHashBytes32 = uploadData.fileHashHex.startsWith("0x")
+          ? uploadData.fileHashHex
+          : `0x${uploadData.fileHashHex}`;
+
+        const uploadTx = await fileRegistry.uploadFile(
+          uploadData.cids,
+          fileHashBytes32,
+          file.name,
+          file.size
+        );
+        const uploadReceipt = await uploadTx.wait();
+        const uploadedEvent = uploadReceipt?.events?.find?.((e) => e.event === "FileUploaded");
+        newFileId = uploadedEvent?.args?.fileId?.toString?.() || "";
+        if (!newFileId) {
+          throw new Error("FileUploaded event missing fileId");
+        }
+
+        await (await accessControl.registerFileOwner(newFileId)).wait();
+        await (await accessControl.defineZkPolicy(newFileId, groupId, true)).wait();
+      }
 
       updateProgress("Finalizing anonymous ZK-public listing…", 92);
       const registerAuth = await signAuthMessage(signer);
@@ -164,21 +190,11 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         },
         body: JSON.stringify({
           fileHashHex: uploadData.fileHashHex,
-          fileName: file.name,
-          fileSize: file.size,
-          groupId,
+          fileId: newFileId,
         }),
       });
       const registerData = await registerRes.json().catch(() => ({}));
       if (!registerRes.ok) throw new Error(registerData.error || "Failed to finalize ZK-public upload");
-      
-      // Backend generated the fileId for this ZK file
-      const generatedFileId = registerData?.fileId;
-      if (!generatedFileId) throw new Error("Server did not return fileId");
-      
-      // Store the fileId with groupId for future downloads
-      const fileIdStorageKey = `zkFileId_${groupId}`;
-      localStorage.setItem(fileIdStorageKey, String(generatedFileId));
 
       updateProgress("Complete!", 100, true);
       toast.success(`${file.name} uploaded to ZK files!`);
@@ -209,32 +225,6 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         };
         return fetch(url, { ...options, headers });
       };
-
-      const downloadWithFreshAuth = async () => {
-        const dlRes = await authedFetch(`/api/zk-public/download/${file.id}`);
-        return dlRes;
-      };
-
-      // Fast-path: if backend already has cached ZK verification for this user+file, skip on-chain proof.
-      let dlRes = await downloadWithFreshAuth();
-      if (dlRes.ok) {
-        const blob = await dlRes.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.fileName || `file_${file.id}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        toast.success("File downloaded!", { id: toastId });
-        return;
-      }
-
-      if (dlRes.status !== 403) {
-        const errData = await dlRes.json().catch(() => ({ error: "Download failed" }));
-        throw new Error(errData.error || "Download failed");
-      }
 
       const semaphore = await getSemaphore(signer);
 
@@ -295,36 +285,33 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       }
 
       const group = new Group(members);
-      const packedHash = ethers.utils.solidityKeccak256(["uint256", "address"], [file.id, userAddress]);
+      const packedHash = ethers.utils.solidityKeccak256(["uint256"], [file.id]);
       const message = ethers.BigNumber.from(packedHash).toString();
       const scopeSeed = ethers.utils.solidityKeccak256(
-        ["uint256", "address", "uint256"],
-        [file.id, userAddress, ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString()]
+        ["uint256", "uint256"],
+        [file.id, ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString()]
       );
       const scope = ethers.BigNumber.from(scopeSeed).toString();
       const proof = await generateProof(identity, group, message, scope);
 
-      // Use helper to call Semaphore.validateProof with proper error handling
-      const verifyTx = await semaphoreValidateProof(semaphore, groupIdNum, proof);
-      await verifyTx.wait();
-
-      const verifyRes = await authedFetch("/api/zk-public/verify-proof", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      let verifyTxHash = "";
+      try {
+        const relayed = await relaySemaphoreValidateProof({
+          signer,
           fileId: file.id,
-          proofTxHash: verifyTx.hash,
-          proofScope: scope,
-        }),
-      });
-      const verifyData = await verifyRes.json().catch(() => ({}));
-      if (!verifyRes.ok) {
-        throw new Error(verifyData.error || "Backend proof verification failed");
+          groupId: groupIdStr,
+          proof,
+        });
+        verifyTxHash = relayed.txHash;
+      } catch (relayErr) {
+        const verifyTx = await semaphoreValidateProof(semaphore, groupIdNum, proof);
+        await verifyTx.wait();
+        verifyTxHash = verifyTx.hash;
       }
 
-      dlRes = await downloadWithFreshAuth();
+      const dlRes = await authedFetch(
+        `/api/zk-public/download/${file.id}?zkProofTxHash=${encodeURIComponent(verifyTxHash)}&zkProofScope=${encodeURIComponent(scope)}`
+      );
       if (!dlRes.ok) {
         const errData = await dlRes.json().catch(() => ({ error: "Download failed" }));
         throw new Error(errData.error || "Download failed");
@@ -370,6 +357,7 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       const signer = await getSigner();
       await verifyContractsDeployed(signer);
       const semaphore = await getSemaphore(signer);
+      const accessControl = await getAccessControl(signer);
 
       const groupIdStr = String(shareFile.groupId || "").trim();
       if (!groupIdStr || !/^\d+$/.test(groupIdStr)) {
@@ -410,8 +398,41 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         return;
       }
 
-      const addTx = await semaphoreAddMember(semaphore, groupIdStr, commitment);
-      await addTx.wait();
+      const [enabled, configuredLeaderCommitment] = await accessControl.getZkGroupLeaderConfig(groupIdStr);
+      if (!enabled) {
+        throw new Error("Leader authorization is not configured for this ZK group");
+      }
+
+      const identity = getOrCreateLocalSemaphoreIdentity(account);
+      const localCommitment = identity.commitment.toString();
+      if (String(configuredLeaderCommitment || "") !== localCommitment) {
+        throw new Error("Only the configured leader identity can share access");
+      }
+
+      const nonce = ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString();
+      const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
+      const messageHash = ethers.utils.solidityKeccak256(
+        ["string", "uint256", "uint256", "uint256", "uint256"],
+        ["ZK_LEADER_ADD_MEMBER", groupIdStr, commitment, nonce, deadline]
+      );
+      const scopeHash = ethers.utils.solidityKeccak256(
+        ["string", "uint256", "uint256", "uint256"],
+        ["ZK_LEADER_SCOPE", groupIdStr, nonce, deadline]
+      );
+      const message = ethers.BigNumber.from(messageHash).toString();
+      const scope = ethers.BigNumber.from(scopeHash).toString();
+
+      const leaderGroup = new Group([localCommitment]);
+      const leaderProof = await generateProof(identity, leaderGroup, message, scope);
+
+      await relayAddZkMemberByLeaderProof({
+        signer,
+        groupId: groupIdStr,
+        identityCommitment: commitment,
+        nonce,
+        deadline,
+        leaderProof,
+      });
 
       setShareDone(true);
       toast.success("Access shared successfully via ZK commitment", { id: toastId });
@@ -426,6 +447,12 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         const adminError = "Only the creator/admin of this ZK group can share access";
         setShareError(adminError);
         toast.error(adminError, { id: toastId });
+        return;
+      }
+      if (msg.includes("configured leader") || msg.includes("leader") || msg.includes("relayer")) {
+        const leaderError = "Only the configured leader identity can share access";
+        setShareError(leaderError);
+        toast.error(leaderError, { id: toastId });
         return;
       }
       setShareError(msg);
@@ -568,7 +595,7 @@ export default function ZkPublicFiles({ account, searchQuery }) {
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <div className="text-xs text-gray-400">File</div>
                   <div className="text-sm font-semibold text-gray-800 truncate">{shareFile.fileName || `File #${shareFile.id}`}</div>
-                  <div className="text-xs text-gray-500 mt-1">groupId: <span className="font-mono">{String(shareFile.groupId || "—")}</span></div>
+                  {/* <div className="text-xs text-gray-500 mt-1">groupId: <span className="font-mono">{String(shareFile.groupId || "—")}</span></div> */}
                 </div>
 
                 <div>

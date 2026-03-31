@@ -38,4 +38,8 @@ module.exports = {
         cache: "./cache",
         artifacts: "./artifacts",
     },
+//      tenderly: {
+//     project: "<your-project-slug>",
+//     username: "<your-username-or-org-slug>"
+//   },
 };

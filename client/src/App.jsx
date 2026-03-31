@@ -132,7 +132,7 @@ export default function App() {
             borderRadius: "12px",
             border: "1px solid #f3f4f6",
             boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-            fontSize: "13px",
+            fontSize: "15px",
             fontWeight: "500",
           },
           success: { iconTheme: { primary: "#22c55e", secondary: "#fff" } },

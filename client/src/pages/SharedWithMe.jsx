@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Share2, Download, Clock, RefreshCw, Loader2, Users } from "lucide-react";
-import { getSigner, getAccessControl, getSemaphore, signAuthMessage } from "../utils/blockchain";
+import { getSigner, getAccessControl, getSemaphore, relaySemaphoreValidateProof, semaphoreValidateProof, signAuthMessage } from "../utils/blockchain";
 import FileTypeIcon from "../components/files/FileTypeIcon";
 import AccessVerification from "../components/sharing/AccessVerification";
 import toast from "react-hot-toast";
@@ -102,6 +102,9 @@ export default function SharedWithMe({ account, searchQuery }) {
       const zkEnabledBool = Boolean(zkEnabled);
       const zkGroupId = zkGroupIdBN?.toString ? zkGroupIdBN.toString() : String(zkGroupIdBN || "");
 
+      let zkProofTxHash = "";
+      let zkProofScope = "";
+
       if (zkEnabledBool) {
         const storageKey = `semaphoreIdentity_${String(auth.address).toLowerCase()}`;
         const stored = localStorage.getItem(storageKey);
@@ -140,17 +143,30 @@ export default function SharedWithMe({ account, searchQuery }) {
 
         const group = new Group(members);
 
-        // Bind proof to (fileId, userAddress) and scope it to fileId.
-        const packedHash = ethers.utils.solidityKeccak256(
-          ["uint256", "address"],
-          [file.id, auth.address]
-        );
+        // Anonymous/file-bound proof payload (no wallet binding in message).
+        const packedHash = ethers.utils.solidityKeccak256(["uint256"], [file.id]);
         const message = ethers.BigNumber.from(packedHash).toString();
-        const scope = String(file.id);
+        const scopeSeed = ethers.utils.solidityKeccak256(
+          ["uint256", "uint256"],
+          [file.id, ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString()]
+        );
+        const scope = ethers.BigNumber.from(scopeSeed).toString();
 
         const proof = await generateProof(identity, group, message, scope);
-        const tx = await accessControl.verifyZkAccess(file.id, proof);
-        await tx.wait();
+        try {
+          const relayed = await relaySemaphoreValidateProof({
+            signer,
+            fileId: file.id,
+            groupId: zkGroupId,
+            proof,
+          });
+          zkProofTxHash = relayed.txHash;
+        } catch (relayErr) {
+          const verifyTx = await semaphoreValidateProof(semaphore, zkGroupId, proof);
+          await verifyTx.wait();
+          zkProofTxHash = verifyTx.hash;
+        }
+        zkProofScope = scope;
       }
 
       // Simulate the remaining steps with delays for UX
@@ -159,7 +175,10 @@ export default function SharedWithMe({ account, searchQuery }) {
         await new Promise(r => setTimeout(r, 400));
       }
 
-      const res = await fetch(`/api/access/${file.id}`, {
+      const proofQuery = (zkEnabledBool && zkProofTxHash && zkProofScope)
+        ? `?zkProofTxHash=${encodeURIComponent(zkProofTxHash)}&zkProofScope=${encodeURIComponent(zkProofScope)}`
+        : "";
+      const res = await fetch(`/api/access/${file.id}${proofQuery}`, {
         headers: { "x-user-address": auth.address, "x-signature": auth.signature, "x-message": auth.message },
       });
 

@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw, Shield, Users, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getAccessControl, getSemaphore, getSigner, signAuthMessage } from "../utils/blockchain";
+import { ethers } from "ethers";
 import { Identity } from "@semaphore-protocol/identity";
+import { Group } from "@semaphore-protocol/group";
+import { generateProof } from "@semaphore-protocol/proof";
+import { getAccessControl, getSigner, relayAddZkMemberByLeaderProof, relayCreateZkGroupWithLeader, signAuthMessage } from "../utils/blockchain";
 
 const ZK_NAME_STORAGE_PREFIX = "zkGroupNames_";
 
@@ -32,6 +35,27 @@ function saveZkGroupName(account, groupId, name) {
   localStorage.setItem(`${ZK_NAME_STORAGE_PREFIX}${String(account).toLowerCase()}`, JSON.stringify(next));
 }
 
+function getOrCreateLocalSemaphoreIdentity(account) {
+  if (!account) throw new Error("Wallet is required");
+  const storageKey = `semaphoreIdentity_${String(account).toLowerCase()}`;
+  const stored = localStorage.getItem(storageKey);
+  let identity;
+
+  if (stored) {
+    try {
+      identity = Identity.import(stored);
+    } catch {
+      identity = new Identity();
+      localStorage.setItem(storageKey, identity.export());
+    }
+  } else {
+    identity = new Identity();
+    localStorage.setItem(storageKey, identity.export());
+  }
+
+  return identity;
+}
+
 export default function Groups({ account }) {
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,13 +67,15 @@ export default function Groups({ account }) {
 
   const [zkGroupName, setZkGroupName] = useState("");
   const [zkDuration, setZkDuration] = useState("3600");
+  const [zkLeaderCommitment, setZkLeaderCommitment] = useState("");
   const [isCreatingZk, setIsCreatingZk] = useState(false);
+  const [manualZkGroupId, setManualZkGroupId] = useState("");
+  const [manualZkCommitment, setManualZkCommitment] = useState("");
+  const [isAddingManualZkMember, setIsAddingManualZkMember] = useState(false);
 
   const [newMemberByGroup, setNewMemberByGroup] = useState({});
   const [newZkCommitmentByGroup, setNewZkCommitmentByGroup] = useState({});
-  const [newZkWalletByGroup, setNewZkWalletByGroup] = useState({});
   const [busyKey, setBusyKey] = useState("");
-  const [registeringIdentity, setRegisteringIdentity] = useState(false);
 
   const loadGroups = useCallback(async () => {
     if (!account) return;
@@ -68,102 +94,7 @@ export default function Groups({ account }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load groups");
       const baseGroups = Array.isArray(data.groups) ? data.groups : [];
-
-      const accessControl = await getAccessControl(signer);
-      const semaphore = await getSemaphore(signer);
-      const isIssuer = await accessControl.isTrustedIssuer(auth.address);
-      const namesMap = getZkGroupNames(auth.address);
-
-      const createdEvents = await accessControl.queryFilter(accessControl.filters.ZkGroupCreated(), 0, "latest");
-
-      const [registeredCommitment, isRegistered] = await accessControl.getRegisteredZkIdentity(auth.address);
-      const hasRegisteredCommitment = Boolean(isRegistered);
-      const commitmentsToMatch = new Set();
-      if (hasRegisteredCommitment) {
-        commitmentsToMatch.add(registeredCommitment.toString());
-      }
-
-      const identityStorageKey = `semaphoreIdentity_${String(auth.address).toLowerCase()}`;
-      const identityStored = localStorage.getItem(identityStorageKey);
-      if (identityStored) {
-        try {
-          const identity = Identity.import(identityStored);
-          commitmentsToMatch.add(identity.commitment.toString());
-        } catch {
-          // Ignore malformed legacy identity value.
-        }
-      }
-
-      const myMemberGroupIds = new Set();
-
-      if (commitmentsToMatch.size > 0) {
-        const singleMemberEvents = await semaphore.queryFilter(semaphore.filters.MemberAdded(), 0, "latest");
-        for (const ev of singleMemberEvents) {
-          const groupId = ev?.args?.groupId;
-          const identityCommitment = ev?.args?.identityCommitment;
-          if (groupId === undefined || identityCommitment === undefined) continue;
-          if (commitmentsToMatch.has(identityCommitment.toString())) {
-            myMemberGroupIds.add(groupId.toString());
-          }
-        }
-
-        const batchMemberEvents = await semaphore.queryFilter(semaphore.filters.MembersAdded(), 0, "latest");
-        for (const ev of batchMemberEvents) {
-          const groupId = ev?.args?.groupId;
-          const commitments = ev?.args?.identityCommitments || [];
-          if (groupId === undefined || !Array.isArray(commitments)) continue;
-          const hasMe = commitments.some((c) => c?.toString && commitmentsToMatch.has(c.toString()));
-          if (hasMe) {
-            myMemberGroupIds.add(groupId.toString());
-          }
-        }
-      }
-
-      const zkGroupsMap = new Map();
-      for (const ev of createdEvents) {
-        const gid = ev?.args?.groupId;
-        const dur = ev?.args?.merkleTreeDuration;
-        if (gid === undefined) continue;
-
-        const id = gid.toString();
-        if (zkGroupsMap.has(id)) continue;
-
-        let creator = "";
-        try {
-          creator = await accessControl.getZkGroupCreator(id);
-        } catch {
-          creator = "";
-        }
-
-        const isCreator = creator && String(creator).toLowerCase() === String(auth.address).toLowerCase();
-        const isMember = myMemberGroupIds.has(id);
-
-        if (!isCreator && !isMember) {
-          continue;
-        }
-
-        const role = isCreator ? (isMember ? "owner/member" : "owner") : "member";
-
-        zkGroupsMap.set(id, {
-          groupId: id,
-          name: String(namesMap[id] || "").trim() || `ZK group #${id}`,
-          ownerAddress: creator || null,
-          currentKeyVersion: null,
-          status: "active",
-          role,
-          memberCount: null,
-          durationSeconds: dur ? Number(dur.toString()) : null,
-          isZk: true,
-          canManage: Boolean(isIssuer || isCreator),
-        });
-      }
-
-      const zkGroups = Array.from(zkGroupsMap.values());
-
-      setGroups([
-        ...baseGroups.map((g) => ({ ...g, isZk: false })),
-        ...zkGroups,
-      ]);
+      setGroups(baseGroups.map((g) => ({ ...g, isZk: false })));
     } catch (err) {
       toast.error(err.message || "Failed to load groups");
     } finally {
@@ -224,14 +155,22 @@ export default function Groups({ account }) {
     setIsCreatingZk(true);
     try {
       const signer = await getSigner();
-      const accessControl = await getAccessControl(signer);
-      const tx = await accessControl.createZkGroup(seconds);
-      const receipt = await tx.wait();
-      let groupId = null;
-      const ev = receipt?.events?.find?.((e) => e.event === "ZkGroupCreated");
-      if (ev?.args?.groupId !== undefined) {
-        groupId = ev.args.groupId.toString();
+      const identity = getOrCreateLocalSemaphoreIdentity(account);
+      const localCommitment = identity.commitment.toString();
+      const leaderCommitment = String(zkLeaderCommitment || "").trim() || localCommitment;
+      if (!/^\d+$/.test(leaderCommitment)) {
+        throw new Error("Leader commitment must be a valid decimal uint256");
       }
+      if (leaderCommitment !== localCommitment) {
+        throw new Error("Leader commitment must match your local Semaphore identity commitment");
+      }
+
+      const relayed = await relayCreateZkGroupWithLeader({
+        signer,
+        merkleTreeDuration: seconds,
+        leaderCommitment,
+      });
+      const groupId = String(relayed.groupId || "");
 
       if (groupId && zkGroupName.trim()) {
         saveZkGroupName(account, groupId, zkGroupName.trim());
@@ -239,6 +178,7 @@ export default function Groups({ account }) {
 
       toast.success(groupId ? `ZK group created (id=${groupId})` : "ZK group created");
       setZkGroupName("");
+      setZkLeaderCommitment("");
       await loadGroups();
     } catch (err) {
       toast.error(err.message || "Failed to create ZK group");
@@ -279,38 +219,6 @@ export default function Groups({ account }) {
     }
   };
 
-  const registerMyZkIdentity = async () => {
-    if (!account) return;
-    setRegisteringIdentity(true);
-    try {
-      const storageKey = `semaphoreIdentity_${String(account).toLowerCase()}`;
-      const stored = localStorage.getItem(storageKey);
-      let identity;
-      if (stored) {
-        try {
-          identity = Identity.import(stored);
-        } catch {
-          identity = new Identity();
-          localStorage.setItem(storageKey, identity.export());
-        }
-      } else {
-        identity = new Identity();
-        localStorage.setItem(storageKey, identity.export());
-      }
-
-      const signer = await getSigner();
-      const accessControl = await getAccessControl(signer);
-      const tx = await accessControl.registerMyZkIdentity(identity.commitment.toString());
-      await tx.wait();
-      toast.success("Your ZK commitment was registered on-chain");
-      await loadGroups();
-    } catch (err) {
-      toast.error(err.message || "Failed to register ZK identity");
-    } finally {
-      setRegisteringIdentity(false);
-    }
-  };
-
   const addZkMemberByCommitment = async (groupId) => {
     const commitment = String(newZkCommitmentByGroup[groupId] || "").trim();
     if (!/^\d+$/.test(commitment)) {
@@ -321,8 +229,42 @@ export default function Groups({ account }) {
     try {
       const signer = await getSigner();
       const accessControl = await getAccessControl(signer);
-      const tx = await accessControl.addZkGroupMember(groupId, commitment);
-      await tx.wait();
+      const [enabled, leaderCommitment] = await accessControl.getZkGroupLeaderConfig(groupId);
+      if (!enabled) {
+        throw new Error("Leader authorization is not configured for this ZK group");
+      }
+
+      const identity = getOrCreateLocalSemaphoreIdentity(account);
+      const localCommitment = identity.commitment.toString();
+      if (String(leaderCommitment || "") !== localCommitment) {
+        throw new Error("Your local Semaphore identity is not the configured group leader");
+      }
+
+      const nonce = ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString();
+      const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
+      const messageHash = ethers.utils.solidityKeccak256(
+        ["string", "uint256", "uint256", "uint256", "uint256"],
+        ["ZK_LEADER_ADD_MEMBER", groupId, commitment, nonce, deadline]
+      );
+      const scopeHash = ethers.utils.solidityKeccak256(
+        ["string", "uint256", "uint256", "uint256"],
+        ["ZK_LEADER_SCOPE", groupId, nonce, deadline]
+      );
+      const message = ethers.BigNumber.from(messageHash).toString();
+      const scope = ethers.BigNumber.from(scopeHash).toString();
+
+      const leaderGroup = new Group([localCommitment]);
+      const leaderProof = await generateProof(identity, leaderGroup, message, scope);
+
+      await relayAddZkMemberByLeaderProof({
+        signer,
+        groupId,
+        identityCommitment: commitment,
+        nonce,
+        deadline,
+        leaderProof,
+      });
+
       toast.success("Commitment added to ZK group");
       setNewZkCommitmentByGroup((prev) => ({ ...prev, [groupId]: "" }));
       await loadGroups();
@@ -333,25 +275,65 @@ export default function Groups({ account }) {
     }
   };
 
-  const addZkMemberByWallet = async (groupId) => {
-    const wallet = String(newZkWalletByGroup[groupId] || "").trim();
-    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
-      toast.error("Enter a valid wallet address");
+  const addManualZkMember = async () => {
+    const groupId = String(manualZkGroupId || "").trim();
+    const commitment = String(manualZkCommitment || "").trim();
+
+    if (!/^\d+$/.test(groupId)) {
+      toast.error("Enter a valid numeric ZK group ID");
       return;
     }
-    setBusyKey(`zkw:${groupId}`);
+    if (!/^\d+$/.test(commitment)) {
+      toast.error("Enter a valid decimal identity commitment");
+      return;
+    }
+
+    setIsAddingManualZkMember(true);
     try {
       const signer = await getSigner();
       const accessControl = await getAccessControl(signer);
-      const tx = await accessControl.addRegisteredUserToZkGroup(groupId, wallet);
-      await tx.wait();
-      toast.success("Registered wallet added to ZK group");
-      setNewZkWalletByGroup((prev) => ({ ...prev, [groupId]: "" }));
-      await loadGroups();
+      const [enabled, leaderCommitment] = await accessControl.getZkGroupLeaderConfig(groupId);
+      if (!enabled) {
+        throw new Error("Leader authorization is not configured for this ZK group");
+      }
+
+      const identity = getOrCreateLocalSemaphoreIdentity(account);
+      const localCommitment = identity.commitment.toString();
+      if (String(leaderCommitment || "") !== localCommitment) {
+        throw new Error("Your local Semaphore identity is not the configured group leader");
+      }
+
+      const nonce = ethers.BigNumber.from(ethers.utils.randomBytes(8)).toString();
+      const deadline = Math.floor(Date.now() / 1000) + 10 * 60;
+      const messageHash = ethers.utils.solidityKeccak256(
+        ["string", "uint256", "uint256", "uint256", "uint256"],
+        ["ZK_LEADER_ADD_MEMBER", groupId, commitment, nonce, deadline]
+      );
+      const scopeHash = ethers.utils.solidityKeccak256(
+        ["string", "uint256", "uint256", "uint256"],
+        ["ZK_LEADER_SCOPE", groupId, nonce, deadline]
+      );
+      const message = ethers.BigNumber.from(messageHash).toString();
+      const scope = ethers.BigNumber.from(scopeHash).toString();
+
+      const leaderGroup = new Group([localCommitment]);
+      const leaderProof = await generateProof(identity, leaderGroup, message, scope);
+
+      await relayAddZkMemberByLeaderProof({
+        signer,
+        groupId,
+        identityCommitment: commitment,
+        nonce,
+        deadline,
+        leaderProof,
+      });
+
+      toast.success("Commitment added to ZK group");
+      setManualZkCommitment("");
     } catch (err) {
-      toast.error(err.message || "Failed to add wallet to ZK group");
+      toast.error(err.message || "Failed to add commitment to ZK group");
     } finally {
-      setBusyKey("");
+      setIsAddingManualZkMember(false);
     }
   };
 
@@ -414,21 +396,20 @@ export default function Groups({ account }) {
             <p className="text-xs text-gray-500">
               ZK groups are Semaphore Merkle trees used for zero-knowledge access control.
             </p>
-            <button
-              onClick={registerMyZkIdentity}
-              disabled={registeringIdentity}
-              className="btn-secondary inline-flex items-center gap-2 text-xs"
-            >
-              {registeringIdentity ? <><Loader2 className="w-3 h-3 animate-spin" /> Registering…</> : "Register My ZK Commitment"}
-            </button>
             <div className="text-[11px] text-gray-500">
-              Run once per wallet so managers can add you to ZK groups by wallet address.
+              Wallet-to-commitment linking is disabled. Share by commitment and group ID only.
             </div>
             <input
               className="input-field text-xs"
               value={zkGroupName}
               onChange={(e) => setZkGroupName(e.target.value)}
               placeholder="Optional ZK group name (stored in your browser)"
+            />
+            <input
+              className="input-field text-xs font-mono"
+              value={zkLeaderCommitment}
+              onChange={(e) => setZkLeaderCommitment(e.target.value)}
+              placeholder="Leader commitment (leave empty to use your local identity)"
             />
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
               <div className="flex-1">
@@ -457,6 +438,44 @@ export default function Groups({ account }) {
                   </>
                 )}
               </button>
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+              <div className="text-xs font-semibold text-gray-700">Add Member to Existing ZK Group</div>
+              <div className="text-[11px] text-gray-500">
+                Enter the target group ID and identity commitment to add a member.
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  className="input-field text-xs flex-1"
+                  value={manualZkGroupId}
+                  onChange={(e) => setManualZkGroupId(e.target.value)}
+                  placeholder="ZK group ID (numeric)"
+                />
+                <input
+                  className="input-field text-xs flex-1"
+                  value={manualZkCommitment}
+                  onChange={(e) => setManualZkCommitment(e.target.value)}
+                  placeholder="Identity commitment (decimal)"
+                />
+                <button
+                  onClick={addManualZkMember}
+                  disabled={isAddingManualZkMember}
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  {isAddingManualZkMember ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Adding…
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Add Member
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -530,7 +549,7 @@ export default function Groups({ account }) {
                 ) : (
                   <div className="mt-3 space-y-2">
                     <div className="text-[11px] text-gray-500">
-                      Add members to this ZK group (by commitment or by registered wallet).
+                      Add members to this ZK group by identity commitment.
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
@@ -548,24 +567,6 @@ export default function Groups({ account }) {
                       >
                         {busyKey === `zkc:${g.groupId}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                         Add Commitment
-                      </button>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        className="input-field text-xs flex-1"
-                        placeholder="Registered wallet (0x...)"
-                        value={newZkWalletByGroup[g.groupId] || ""}
-                        onChange={(e) =>
-                          setNewZkWalletByGroup((prev) => ({ ...prev, [g.groupId]: e.target.value }))
-                        }
-                      />
-                      <button
-                        onClick={() => addZkMemberByWallet(g.groupId)}
-                        disabled={busyKey === `zkw:${g.groupId}` || !g.canManage}
-                        className="btn-secondary text-xs inline-flex items-center gap-1"
-                      >
-                        {busyKey === `zkw:${g.groupId}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                        Add Wallet
                       </button>
                     </div>
                     {!g.canManage && (
