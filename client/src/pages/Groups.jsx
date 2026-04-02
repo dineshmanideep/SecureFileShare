@@ -5,7 +5,7 @@ import { ethers } from "ethers";
 import { Identity } from "@semaphore-protocol/identity";
 import { Group } from "@semaphore-protocol/group";
 import { generateProof } from "@semaphore-protocol/proof";
-import { getAccessControl, getSigner, relayAddZkMemberByLeaderProof, relayCreateZkGroupWithLeader, signAuthMessage } from "../utils/blockchain";
+import { getSigner, relayAddZkMemberByLeaderProof, relayCreateZkGroupWithLeader, relayGetZkGroupLeaderConfig, signAuthMessage } from "../utils/blockchain";
 
 const ZK_NAME_STORAGE_PREFIX = "zkGroupNames_";
 
@@ -228,8 +228,7 @@ export default function Groups({ account }) {
     setBusyKey(`zkc:${groupId}`);
     try {
       const signer = await getSigner();
-      const accessControl = await getAccessControl(signer);
-      const [enabled, leaderCommitment] = await accessControl.getZkGroupLeaderConfig(groupId);
+      const { enabled, leaderCommitment } = await relayGetZkGroupLeaderConfig({ signer, groupId });
       if (!enabled) {
         throw new Error("Leader authorization is not configured for this ZK group");
       }
@@ -291,8 +290,7 @@ export default function Groups({ account }) {
     setIsAddingManualZkMember(true);
     try {
       const signer = await getSigner();
-      const accessControl = await getAccessControl(signer);
-      const [enabled, leaderCommitment] = await accessControl.getZkGroupLeaderConfig(groupId);
+      const { enabled, leaderCommitment } = await relayGetZkGroupLeaderConfig({ signer, groupId });
       if (!enabled) {
         throw new Error("Leader authorization is not configured for this ZK group");
       }

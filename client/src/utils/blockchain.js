@@ -407,6 +407,38 @@ export async function relayCreateZkGroupWithLeader({ signer, merkleTreeDuration,
     return data;
 }
 
+export async function relayGetZkGroupLeaderConfig({ signer, groupId }) {
+    if (!signer) throw new Error("Signer is required for relayer authentication");
+    if (!groupId) throw new Error("groupId is required");
+
+    const auth = await signAuthMessage(signer);
+    const res = await fetch("/api/zk-relayer/leader-config", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-user-address": auth.address,
+            "x-signature": auth.signature,
+            "x-message": auth.message,
+        },
+        body: JSON.stringify({
+            groupId: String(groupId),
+        }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error(data.error || "Failed to fetch ZK group leader config");
+        err.status = res.status;
+        throw err;
+    }
+
+    return {
+        enabled: Boolean(data.enabled),
+        leaderCommitment: String(data.leaderCommitment || "0"),
+        leaderAuthGroupId: String(data.leaderAuthGroupId || "0"),
+    };
+}
+
 export async function relayAddZkMemberByLeaderProof({
     signer,
     groupId,

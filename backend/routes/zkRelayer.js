@@ -286,6 +286,32 @@ router.post("/create-zk-group", authMiddleware, async (req, res) => {
     }
 });
 
+router.post("/leader-config", authMiddleware, async (req, res) => {
+    try {
+        const { groupId } = req.body || {};
+
+        if (!/^\d+$/.test(String(groupId || ""))) {
+            return res.status(400).json({ error: "groupId must be a uint256 numeric string" });
+        }
+
+        const provider = getProvider();
+        const accessControl = getAccessControl(provider);
+        const [enabled, leaderCommitment, leaderAuthGroupId] = await accessControl.getZkGroupLeaderConfig(
+            String(groupId)
+        );
+
+        return res.json({
+            success: true,
+            groupId: String(groupId),
+            enabled: Boolean(enabled),
+            leaderCommitment: String(leaderCommitment || "0"),
+            leaderAuthGroupId: String(leaderAuthGroupId || "0"),
+        });
+    } catch {
+        return res.status(500).json({ error: "Failed to fetch ZK group leader config" });
+    }
+});
+
 router.post("/add-zk-member", authMiddleware, async (req, res) => {
     try {
         const relayerPrivateKey = (

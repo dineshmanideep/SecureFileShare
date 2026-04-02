@@ -13,6 +13,7 @@ import {
   getSemaphore,
   relayAddZkMemberByLeaderProof,
   relayCreateZkGroupWithLeader,
+  relayGetZkGroupLeaderConfig,
   relayRegisterZkFileOnChain,
   signAuthMessage,
   verifyContractsDeployed,
@@ -357,7 +358,6 @@ export default function ZkPublicFiles({ account, searchQuery }) {
       const signer = await getSigner();
       await verifyContractsDeployed(signer);
       const semaphore = await getSemaphore(signer);
-      const accessControl = await getAccessControl(signer);
 
       const groupIdStr = String(shareFile.groupId || "").trim();
       if (!groupIdStr || !/^\d+$/.test(groupIdStr)) {
@@ -398,7 +398,10 @@ export default function ZkPublicFiles({ account, searchQuery }) {
         return;
       }
 
-      const [enabled, configuredLeaderCommitment] = await accessControl.getZkGroupLeaderConfig(groupIdStr);
+      const { enabled, leaderCommitment: configuredLeaderCommitment } = await relayGetZkGroupLeaderConfig({
+        signer,
+        groupId: groupIdStr,
+      });
       if (!enabled) {
         throw new Error("Leader authorization is not configured for this ZK group");
       }
