@@ -8,6 +8,7 @@
         "test": "npx hardhat test",
         "node": "npx hardhat node",
         "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
+        "deploy:virtual": "npx hardhat run scripts/deploy.js --network virtual_mainnet",
         "deploy:hardhat": "npx hardhat run scripts/deploy.js --network hardhat",
         "clean": "npx hardhat clean"
     },
@@ -17,7 +18,7 @@
         "@tenderly/hardhat-tenderly": "^2.5.2",
         "chai": "^4.3.7",
         "dotenv": "^16.3.1",
-        "hardhat": "^2.19.0"
+        "hardhat": "^2.28.6"
     },
     "dependencies": {
         "@semaphore-protocol/contracts": "^4.14.2",

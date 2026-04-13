@@ -1,0 +1,1443 @@
+{
+  "version": "3.4",
+  "log": [
+    {
+      "@openzeppelin/contracts/access/Ownable.sol:Ownable": {
+        "src": "@openzeppelin/contracts/access/Ownable.sol:20",
+        "inherit": [
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "owner()",
+          "renounceOwnership()",
+          "transferOwnership(address)"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "Ownable",
+            "src": "@openzeppelin/contracts/access/Ownable.sol:28"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@openzeppelin/contracts/security/ReentrancyGuard.sol:ReentrancyGuard": {
+        "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:22",
+        "inherit": [],
+        "libraries": [],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "ReentrancyGuard",
+            "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:39"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:37"
+            }
+          ],
+          "types": {
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@openzeppelin/contracts/utils/Context.sol:Context": {
+        "src": "@openzeppelin/contracts/utils/Context.sol:16",
+        "inherit": [],
+        "libraries": [],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/Semaphore.sol:Semaphore": {
+        "src": "@semaphore-protocol/contracts/Semaphore.sol:15",
+        "version": {
+          "withMetadata": "8aa4c62fba3152fec54807c9a9a55fab039e7b06325106cb96f3d6f9b9f6fdfe",
+          "withoutMetadata": "56c41d4ab55561219bd0093a147fa6ae24495af0ed2a0a97646bef26c5ef8925",
+          "linkedWithoutMetadata": "56c41d4ab55561219bd0093a147fa6ae24495af0ed2a0a97646bef26c5ef8925"
+        },
+        "inherit": [
+          "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:SemaphoreGroups",
+          "@semaphore-protocol/contracts/interfaces/ISemaphoreGroups.sol:ISemaphoreGroups",
+          "@semaphore-protocol/contracts/interfaces/ISemaphore.sol:ISemaphore"
+        ],
+        "libraries": [],
+        "methods": [
+          "(address)",
+          "createGroup()",
+          "createGroup(address)",
+          "createGroup(address,uint256)",
+          "updateGroupAdmin(uint256,address)",
+          "acceptGroupAdmin(uint256)",
+          "updateGroupMerkleTreeDuration(uint256,uint256)",
+          "addMember(uint256,uint256)",
+          "addMembers(uint256,uint256[])",
+          "updateMember(uint256,uint256,uint256,uint256[])",
+          "removeMember(uint256,uint256,uint256[])",
+          "validateProof(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))",
+          "verifyProof(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))"
+        ],
+        "linkReferences": [
+          {
+            "src": "poseidon-solidity/PoseidonT3.sol",
+            "name": "PoseidonT3",
+            "length": 20,
+            "start": 4599,
+            "placeholder": "__$75f79a42d9bcbdbb69ad79ebd80f556f39$__"
+          },
+          {
+            "src": "poseidon-solidity/PoseidonT3.sol",
+            "name": "PoseidonT3",
+            "length": 20,
+            "start": 5338,
+            "placeholder": "__$75f79a42d9bcbdbb69ad79ebd80f556f39$__"
+          },
+          {
+            "src": "poseidon-solidity/PoseidonT3.sol",
+            "name": "PoseidonT3",
+            "length": 20,
+            "start": 5820,
+            "placeholder": "__$75f79a42d9bcbdbb69ad79ebd80f556f39$__"
+          },
+          {
+            "src": "poseidon-solidity/PoseidonT3.sol",
+            "name": "PoseidonT3",
+            "length": 20,
+            "start": 5986,
+            "placeholder": "__$75f79a42d9bcbdbb69ad79ebd80f556f39$__"
+          },
+          {
+            "src": "poseidon-solidity/PoseidonT3.sol",
+            "name": "PoseidonT3",
+            "length": 20,
+            "start": 6288,
+            "placeholder": "__$75f79a42d9bcbdbb69ad79ebd80f556f39$__"
+          },
+          {
+            "src": "poseidon-solidity/PoseidonT3.sol",
+            "name": "PoseidonT3",
+            "length": 20,
+            "start": 6454,
+            "placeholder": "__$75f79a42d9bcbdbb69ad79ebd80f556f39$__"
+          }
+        ],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "Semaphore",
+            "src": "@semaphore-protocol/contracts/Semaphore.sol:27"
+          },
+          {
+            "kind": "external-library-linking",
+            "name": "PoseidonT3",
+            "src": "poseidon-solidity/PoseidonT3.sol"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "merkleTrees",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_mapping(t_uint256,t_struct(LeanIMTData)1726_storage)",
+              "contract": "SemaphoreGroups",
+              "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:16"
+            },
+            {
+              "label": "admins",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "SemaphoreGroups",
+              "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:20"
+            },
+            {
+              "label": "pendingAdmins",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "SemaphoreGroups",
+              "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:24"
+            },
+            {
+              "label": "verifier",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_contract(ISemaphoreVerifier)1702",
+              "contract": "Semaphore",
+              "src": "@semaphore-protocol/contracts/Semaphore.sol:16"
+            },
+            {
+              "label": "groups",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_mapping(t_uint256,t_struct(Group)1382_storage)",
+              "contract": "Semaphore",
+              "src": "@semaphore-protocol/contracts/Semaphore.sol:19"
+            },
+            {
+              "label": "groupCounter",
+              "offset": 0,
+              "slot": "5",
+              "type": "t_uint256",
+              "contract": "Semaphore",
+              "src": "@semaphore-protocol/contracts/Semaphore.sol:23"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_contract(ISemaphoreVerifier)1702": {
+              "label": "contract ISemaphoreVerifier",
+              "numberOfBytes": "20"
+            },
+            "t_mapping(t_uint256,t_address)": {
+              "label": "mapping(uint256 => address)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_bool)": {
+              "label": "mapping(uint256 => bool)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(Group)1382_storage)": {
+              "label": "mapping(uint256 => struct ISemaphore.Group)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(LeanIMTData)1726_storage)": {
+              "label": "mapping(uint256 => struct LeanIMTData)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_uint256)": {
+              "label": "mapping(uint256 => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_struct(Group)1382_storage": {
+              "label": "struct ISemaphore.Group",
+              "members": [
+                {
+                  "label": "merkleTreeDuration",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "merkleRootCreationDates",
+                  "type": "t_mapping(t_uint256,t_uint256)",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "nullifiers",
+                  "type": "t_mapping(t_uint256,t_bool)",
+                  "offset": 0,
+                  "slot": "2"
+                }
+              ],
+              "numberOfBytes": "96"
+            },
+            "t_struct(LeanIMTData)1726_storage": {
+              "label": "struct LeanIMTData",
+              "members": [
+                {
+                  "label": "size",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "depth",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "sideNodes",
+                  "type": "t_mapping(t_uint256,t_uint256)",
+                  "offset": 0,
+                  "slot": "2"
+                },
+                {
+                  "label": "leaves",
+                  "type": "t_mapping(t_uint256,t_uint256)",
+                  "offset": 0,
+                  "slot": "3"
+                }
+              ],
+              "numberOfBytes": "128"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:SemaphoreGroups": {
+        "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:10",
+        "inherit": [
+          "@semaphore-protocol/contracts/interfaces/ISemaphoreGroups.sol:ISemaphoreGroups"
+        ],
+        "libraries": [
+          "@zk-kit/lean-imt.sol/InternalLeanIMT.sol:InternalLeanIMT"
+        ],
+        "methods": [
+          "getGroupAdmin(uint256)",
+          "hasMember(uint256,uint256)",
+          "indexOf(uint256,uint256)",
+          "getMerkleTreeRoot(uint256)",
+          "getMerkleTreeDepth(uint256)",
+          "getMerkleTreeSize(uint256)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [
+            {
+              "label": "merkleTrees",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_mapping(t_uint256,t_struct(LeanIMTData)1726_storage)",
+              "contract": "SemaphoreGroups",
+              "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:16"
+            },
+            {
+              "label": "admins",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "SemaphoreGroups",
+              "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:20"
+            },
+            {
+              "label": "pendingAdmins",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "SemaphoreGroups",
+              "src": "@semaphore-protocol/contracts/base/SemaphoreGroups.sol:24"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_mapping(t_uint256,t_address)": {
+              "label": "mapping(uint256 => address)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(LeanIMTData)1726_storage)": {
+              "label": "mapping(uint256 => struct LeanIMTData)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_uint256)": {
+              "label": "mapping(uint256 => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_struct(LeanIMTData)1726_storage": {
+              "label": "struct LeanIMTData",
+              "members": [
+                {
+                  "label": "size",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "depth",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "sideNodes",
+                  "type": "t_mapping(t_uint256,t_uint256)",
+                  "offset": 0,
+                  "slot": "2"
+                },
+                {
+                  "label": "leaves",
+                  "type": "t_mapping(t_uint256,t_uint256)",
+                  "offset": 0,
+                  "slot": "3"
+                }
+              ],
+              "numberOfBytes": "128"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/base/SemaphoreVerifier.sol:SemaphoreVerifier": {
+        "src": "@semaphore-protocol/contracts/base/SemaphoreVerifier.sol:9",
+        "version": {
+          "withMetadata": "e66b145e62aaaeaba6bdb999962b2daeffa445b382bb73b3c5ac792c860071e2",
+          "withoutMetadata": "e66b145e62aaaeaba6bdb999962b2daeffa445b382bb73b3c5ac792c860071e2",
+          "linkedWithoutMetadata": "e66b145e62aaaeaba6bdb999962b2daeffa445b382bb73b3c5ac792c860071e2"
+        },
+        "inherit": [],
+        "libraries": [
+          "@semaphore-protocol/contracts/base/SemaphoreVerifierKeyPts.sol:SemaphoreVerifierKeyPts"
+        ],
+        "methods": [
+          "()",
+          "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[4],uint256)"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "SemaphoreVerifier",
+            "src": "@semaphore-protocol/contracts/base/SemaphoreVerifier.sol:33"
+          }
+        ],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/base/SemaphoreVerifierKeyPts.sol:SemaphoreVerifierKeyPts": {
+        "src": "@semaphore-protocol/contracts/base/SemaphoreVerifierKeyPts.sol:5",
+        "version": {
+          "withMetadata": "376e2c1a2aea5a0b8d93a3470361e12acdb595aab0ada74d0911a73754568e41",
+          "withoutMetadata": "a64c6cf9c6ba9368f5132c93a0196b3204a7963dbb4dd05dfddb4ab23126b8db",
+          "linkedWithoutMetadata": "a64c6cf9c6ba9368f5132c93a0196b3204a7963dbb4dd05dfddb4ab23126b8db"
+        },
+        "inherit": [],
+        "libraries": [],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/interfaces/ISemaphore.sol:ISemaphore": {
+        "src": "@semaphore-protocol/contracts/interfaces/ISemaphore.sol:5",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "groupCounter()",
+          "createGroup()",
+          "createGroup(address)",
+          "createGroup(address,uint256)",
+          "updateGroupAdmin(uint256,address)",
+          "acceptGroupAdmin(uint256)",
+          "updateGroupMerkleTreeDuration(uint256,uint256)",
+          "addMember(uint256,uint256)",
+          "addMembers(uint256,uint256[])",
+          "updateMember(uint256,uint256,uint256,uint256[])",
+          "removeMember(uint256,uint256,uint256[])",
+          "validateProof(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))",
+          "verifyProof(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/interfaces/ISemaphoreGroups.sol:ISemaphoreGroups": {
+        "src": "@semaphore-protocol/contracts/interfaces/ISemaphoreGroups.sol:5",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "getGroupAdmin(uint256)",
+          "hasMember(uint256,uint256)",
+          "indexOf(uint256,uint256)",
+          "getMerkleTreeRoot(uint256)",
+          "getMerkleTreeDepth(uint256)",
+          "getMerkleTreeSize(uint256)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@semaphore-protocol/contracts/interfaces/ISemaphoreVerifier.sol:ISemaphoreVerifier": {
+        "src": "@semaphore-protocol/contracts/interfaces/ISemaphoreVerifier.sol:5",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[4],uint256)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "@zk-kit/lean-imt.sol/InternalLeanIMT.sol:InternalLeanIMT": {
+        "src": "@zk-kit/lean-imt.sol/InternalLeanIMT.sol:33",
+        "version": {
+          "withMetadata": "818a80612ff5516981b83eee303b7cc91f05d5443e527bfa774b5c0a4cf7b4e9",
+          "withoutMetadata": "a64c6cf9c6ba9368f5132c93a0196b3204a7963dbb4dd05dfddb4ab23126b8db",
+          "linkedWithoutMetadata": "a64c6cf9c6ba9368f5132c93a0196b3204a7963dbb4dd05dfddb4ab23126b8db"
+        },
+        "inherit": [],
+        "libraries": [
+          "poseidon-solidity/PoseidonT3.sol:PoseidonT3"
+        ],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "contracts/AccessControl.sol:FileAccessControl": {
+        "src": "contracts/AccessControl.sol:15",
+        "version": {
+          "withMetadata": "b554b8dc213408d1e02886e182561cc591fe0907b27e6dcbbc15bc157becfeab",
+          "withoutMetadata": "5e3e9a434fa05bd990ef07332ba662a270bfc17eebcdc90f749bfd70805c63fe",
+          "linkedWithoutMetadata": "5e3e9a434fa05bd990ef07332ba662a270bfc17eebcdc90f749bfd70805c63fe"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/security/ReentrancyGuard.sol:ReentrancyGuard",
+          "@openzeppelin/contracts/access/Ownable.sol:Ownable",
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "(address)",
+          "setSemaphore(address)",
+          "setZkRelayer(address)",
+          "createZkGroup(uint256)",
+          "createZkGroupWithLeader(uint256,uint256)",
+          "registerFileOwner(uint256)",
+          "setTrustedIssuer(address,bool)",
+          "setUserAttributes(address,bytes32[])",
+          "definePolicy(uint256,bytes32[])",
+          "defineZkPolicy(uint256,uint256,bool)",
+          "addZkGroupMember(uint256,uint256)",
+          "relayedAddZkGroupMember(uint256,uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]),uint256,uint256)",
+          "verifyZkAccess(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))",
+          "grantAccess(uint256,address,bytes32[])",
+          "revokeAccess(uint256,address)",
+          "checkAccess(address,uint256)",
+          "checkZkOnlyAccess(address,uint256)",
+          "getUserAttributes(address)",
+          "getKnownAttributeUsers()",
+          "getFilePolicy(uint256)",
+          "getZkPolicy(uint256)",
+          "getZkGroupCreator(uint256)",
+          "getZkGroupLeaderConfig(uint256)",
+          "isZkVerified(uint256,address)",
+          "getFileGrantees(uint256)",
+          "getFileOwner(uint256)",
+          "isTrustedIssuer(address)"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "FileAccessControl",
+            "src": "contracts/AccessControl.sol:122"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            },
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:37"
+            },
+            {
+              "label": "_userAttributes",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_mapping(t_address,t_array(t_bytes32)dyn_storage)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:21"
+            },
+            {
+              "label": "_knownAttributeUsers",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_mapping(t_address,t_bool)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:25"
+            },
+            {
+              "label": "_knownAttributeUserList",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_array(t_address)dyn_storage",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:26"
+            },
+            {
+              "label": "_filePolicies",
+              "offset": 0,
+              "slot": "5",
+              "type": "t_mapping(t_uint256,t_array(t_bytes32)dyn_storage)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:29"
+            },
+            {
+              "label": "_accessGrants",
+              "offset": 0,
+              "slot": "6",
+              "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:31"
+            },
+            {
+              "label": "_grantees",
+              "offset": 0,
+              "slot": "7",
+              "type": "t_mapping(t_uint256,t_array(t_address)dyn_storage)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:34"
+            },
+            {
+              "label": "_fileOwner",
+              "offset": 0,
+              "slot": "8",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:37"
+            },
+            {
+              "label": "_trustedIssuers",
+              "offset": 0,
+              "slot": "9",
+              "type": "t_mapping(t_address,t_bool)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:40"
+            },
+            {
+              "label": "semaphore",
+              "offset": 0,
+              "slot": "10",
+              "type": "t_contract(ISemaphore)1540",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:48"
+            },
+            {
+              "label": "_zkPolicies",
+              "offset": 0,
+              "slot": "11",
+              "type": "t_mapping(t_uint256,t_struct(ZkPolicy)2639_storage)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:57"
+            },
+            {
+              "label": "_zkVerifiedAccess",
+              "offset": 0,
+              "slot": "12",
+              "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:61"
+            },
+            {
+              "label": "_zkGroupCreator",
+              "offset": 0,
+              "slot": "13",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:64"
+            },
+            {
+              "label": "_zkGroupLeaderConfig",
+              "offset": 0,
+              "slot": "14",
+              "type": "t_mapping(t_uint256,t_struct(ZkGroupLeaderConfig)2646_storage)",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:66"
+            },
+            {
+              "label": "_usedLeaderProofNullifier",
+              "offset": 0,
+              "slot": "15",
+              "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:69"
+            },
+            {
+              "label": "zkRelayer",
+              "offset": 0,
+              "slot": "16",
+              "type": "t_address",
+              "contract": "FileAccessControl",
+              "src": "contracts/AccessControl.sol:74"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_array(t_address)dyn_storage": {
+              "label": "address[]",
+              "numberOfBytes": "32"
+            },
+            "t_array(t_bytes32)dyn_storage": {
+              "label": "bytes32[]",
+              "numberOfBytes": "32"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_bytes32": {
+              "label": "bytes32",
+              "numberOfBytes": "32"
+            },
+            "t_contract(ISemaphore)1540": {
+              "label": "contract ISemaphore",
+              "numberOfBytes": "20"
+            },
+            "t_mapping(t_address,t_array(t_bytes32)dyn_storage)": {
+              "label": "mapping(address => bytes32[])",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_address,t_bool)": {
+              "label": "mapping(address => bool)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_address)": {
+              "label": "mapping(uint256 => address)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_array(t_address)dyn_storage)": {
+              "label": "mapping(uint256 => address[])",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_array(t_bytes32)dyn_storage)": {
+              "label": "mapping(uint256 => bytes32[])",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_bool)": {
+              "label": "mapping(uint256 => bool)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+              "label": "mapping(uint256 => mapping(address => bool))",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))": {
+              "label": "mapping(uint256 => mapping(uint256 => bool))",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(ZkGroupLeaderConfig)2646_storage)": {
+              "label": "mapping(uint256 => struct FileAccessControl.ZkGroupLeaderConfig)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(ZkPolicy)2639_storage)": {
+              "label": "mapping(uint256 => struct FileAccessControl.ZkPolicy)",
+              "numberOfBytes": "32"
+            },
+            "t_struct(ZkGroupLeaderConfig)2646_storage": {
+              "label": "struct FileAccessControl.ZkGroupLeaderConfig",
+              "members": [
+                {
+                  "label": "enabled",
+                  "type": "t_bool",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "leaderCommitment",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "leaderAuthGroupId",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "2"
+                }
+              ],
+              "numberOfBytes": "96"
+            },
+            "t_struct(ZkPolicy)2639_storage": {
+              "label": "struct FileAccessControl.ZkPolicy",
+              "members": [
+                {
+                  "label": "enabled",
+                  "type": "t_bool",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "groupId",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                }
+              ],
+              "numberOfBytes": "64"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "contracts/FileRegistry.sol:FileRegistry": {
+        "src": "contracts/FileRegistry.sol:12",
+        "version": {
+          "withMetadata": "418506841023213a138601e3c9e2e9b5872af336384a6cb91960f8f10ab26840",
+          "withoutMetadata": "36a2215602241a5f500b2c76ee4edefcefad6cd4da9d96fcc8c059f13941202f",
+          "linkedWithoutMetadata": "36a2215602241a5f500b2c76ee4edefcefad6cd4da9d96fcc8c059f13941202f"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/security/ReentrancyGuard.sol:ReentrancyGuard",
+          "@openzeppelin/contracts/access/Ownable.sol:Ownable",
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "uploadFile(string[],bytes32,string,uint256)",
+          "getFile(uint256)",
+          "deleteFile(uint256)",
+          "getOwnerFiles(address)",
+          "totalFiles()"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            },
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:37"
+            },
+            {
+              "label": "_nextFileId",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_uint256",
+              "contract": "FileRegistry",
+              "src": "contracts/FileRegistry.sol:19"
+            },
+            {
+              "label": "_files",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_mapping(t_uint256,t_struct(FileRecord)3873_storage)",
+              "contract": "FileRegistry",
+              "src": "contracts/FileRegistry.sol:31"
+            },
+            {
+              "label": "_ownerFiles",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+              "contract": "FileRegistry",
+              "src": "contracts/FileRegistry.sol:33"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_array(t_string_storage)dyn_storage": {
+              "label": "string[]",
+              "numberOfBytes": "32"
+            },
+            "t_array(t_uint256)dyn_storage": {
+              "label": "uint256[]",
+              "numberOfBytes": "32"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_bytes32": {
+              "label": "bytes32",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_address,t_array(t_uint256)dyn_storage)": {
+              "label": "mapping(address => uint256[])",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(FileRecord)3873_storage)": {
+              "label": "mapping(uint256 => struct FileRegistry.FileRecord)",
+              "numberOfBytes": "32"
+            },
+            "t_string_storage": {
+              "label": "string",
+              "numberOfBytes": "32"
+            },
+            "t_struct(FileRecord)3873_storage": {
+              "label": "struct FileRegistry.FileRecord",
+              "members": [
+                {
+                  "label": "owner",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "cids",
+                  "type": "t_array(t_string_storage)dyn_storage",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "fileHash",
+                  "type": "t_bytes32",
+                  "offset": 0,
+                  "slot": "2"
+                },
+                {
+                  "label": "timestamp",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "3"
+                },
+                {
+                  "label": "isDeleted",
+                  "type": "t_bool",
+                  "offset": 0,
+                  "slot": "4"
+                },
+                {
+                  "label": "fileName",
+                  "type": "t_string_storage",
+                  "offset": 0,
+                  "slot": "5"
+                },
+                {
+                  "label": "fileSize",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "6"
+                }
+              ],
+              "numberOfBytes": "224"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "contracts/GDPRCompliance.sol:GDPRCompliance": {
+        "src": "contracts/GDPRCompliance.sol:14",
+        "version": {
+          "withMetadata": "4a887327cdc0f129e4cdd5579df377a19db12456d57f64be5425d10778bd52e3",
+          "withoutMetadata": "f1de126893f4709dd570b247d615bb32228d749830e9999f8e38e9d84092a56f",
+          "linkedWithoutMetadata": "f1de126893f4709dd570b247d615bb32228d749830e9999f8e38e9d84092a56f"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/security/ReentrancyGuard.sol:ReentrancyGuard",
+          "@openzeppelin/contracts/access/Ownable.sol:Ownable",
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "registerFile(uint256)",
+          "requestErasure(uint256)",
+          "fulfillErasure(uint256)",
+          "getErasureStatus(uint256)",
+          "exportUserData(address)",
+          "getErasureRequest(uint256)",
+          "getFileRequestId(uint256)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            },
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:37"
+            },
+            {
+              "label": "_nextRequestId",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_uint256",
+              "contract": "GDPRCompliance",
+              "src": "contracts/GDPRCompliance.sol:22"
+            },
+            {
+              "label": "_requests",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_mapping(t_uint256,t_struct(EraseRequest)4142_storage)",
+              "contract": "GDPRCompliance",
+              "src": "contracts/GDPRCompliance.sol:30"
+            },
+            {
+              "label": "_fileRequest",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_mapping(t_uint256,t_uint256)",
+              "contract": "GDPRCompliance",
+              "src": "contracts/GDPRCompliance.sol:32"
+            },
+            {
+              "label": "_userFiles",
+              "offset": 0,
+              "slot": "5",
+              "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+              "contract": "GDPRCompliance",
+              "src": "contracts/GDPRCompliance.sol:36"
+            },
+            {
+              "label": "_fileOwner",
+              "offset": 0,
+              "slot": "6",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "GDPRCompliance",
+              "src": "contracts/GDPRCompliance.sol:38"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_array(t_uint256)dyn_storage": {
+              "label": "uint256[]",
+              "numberOfBytes": "32"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_mapping(t_address,t_array(t_uint256)dyn_storage)": {
+              "label": "mapping(address => uint256[])",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_address)": {
+              "label": "mapping(uint256 => address)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(EraseRequest)4142_storage)": {
+              "label": "mapping(uint256 => struct GDPRCompliance.EraseRequest)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_uint256)": {
+              "label": "mapping(uint256 => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_struct(EraseRequest)4142_storage": {
+              "label": "struct GDPRCompliance.EraseRequest",
+              "members": [
+                {
+                  "label": "requester",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "fileId",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "requestTimestamp",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "2"
+                },
+                {
+                  "label": "fulfilled",
+                  "type": "t_bool",
+                  "offset": 0,
+                  "slot": "3"
+                }
+              ],
+              "numberOfBytes": "128"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "contracts/TimeBoundPermissions.sol:TimeBoundPermissions": {
+        "src": "contracts/TimeBoundPermissions.sol:12",
+        "version": {
+          "withMetadata": "d4f9ec767bae3e930303de42b587aea17bc122b53ee5a6abac0c96b22408e8c0",
+          "withoutMetadata": "0812a9b93867471dad84ad24acfba5bbedd8c157ab65861452d1924a9d059df1",
+          "linkedWithoutMetadata": "0812a9b93867471dad84ad24acfba5bbedd8c157ab65861452d1924a9d059df1"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/security/ReentrancyGuard.sol:ReentrancyGuard",
+          "@openzeppelin/contracts/access/Ownable.sol:Ownable",
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "registerFileOwner(uint256)",
+          "grantTimedAccess(address,uint256,uint256)",
+          "isAccessValid(address,uint256)",
+          "revokeExpiredPermissions(uint256)",
+          "extendAccess(address,uint256,uint256)",
+          "revokePermission(address,uint256)",
+          "getPermission(uint256)",
+          "getPermissionForUserFile(address,uint256)",
+          "getFilePermissions(uint256)",
+          "getFileOwner(uint256)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            },
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/security/ReentrancyGuard.sol:37"
+            },
+            {
+              "label": "_permissions",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_mapping(t_uint256,t_struct(Permission)4430_storage)",
+              "contract": "TimeBoundPermissions",
+              "src": "contracts/TimeBoundPermissions.sol:25"
+            },
+            {
+              "label": "_userFilePermission",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_mapping(t_address,t_mapping(t_uint256,t_uint256))",
+              "contract": "TimeBoundPermissions",
+              "src": "contracts/TimeBoundPermissions.sol:29"
+            },
+            {
+              "label": "_filePermissions",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_mapping(t_uint256,t_array(t_uint256)dyn_storage)",
+              "contract": "TimeBoundPermissions",
+              "src": "contracts/TimeBoundPermissions.sol:31"
+            },
+            {
+              "label": "_fileOwner",
+              "offset": 0,
+              "slot": "5",
+              "type": "t_mapping(t_uint256,t_address)",
+              "contract": "TimeBoundPermissions",
+              "src": "contracts/TimeBoundPermissions.sol:36"
+            },
+            {
+              "label": "_nextPermissionId",
+              "offset": 0,
+              "slot": "6",
+              "type": "t_uint256",
+              "contract": "TimeBoundPermissions",
+              "src": "contracts/TimeBoundPermissions.sol:38"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_array(t_uint256)dyn_storage": {
+              "label": "uint256[]",
+              "numberOfBytes": "32"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_mapping(t_address,t_mapping(t_uint256,t_uint256))": {
+              "label": "mapping(address => mapping(uint256 => uint256))",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_address)": {
+              "label": "mapping(uint256 => address)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_array(t_uint256)dyn_storage)": {
+              "label": "mapping(uint256 => uint256[])",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(Permission)4430_storage)": {
+              "label": "mapping(uint256 => struct TimeBoundPermissions.Permission)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_uint256)": {
+              "label": "mapping(uint256 => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_struct(Permission)4430_storage": {
+              "label": "struct TimeBoundPermissions.Permission",
+              "members": [
+                {
+                  "label": "user",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "fileId",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "expiryTimestamp",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "2"
+                },
+                {
+                  "label": "isActive",
+                  "type": "t_bool",
+                  "offset": 0,
+                  "slot": "3"
+                }
+              ],
+              "numberOfBytes": "128"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "contracts/mocks/MockSemaphore.sol:MockSemaphore": {
+        "src": "contracts/mocks/MockSemaphore.sol:10",
+        "version": {
+          "withMetadata": "99a97e1bd6a53b9c4c0f29d2a51fd2c52de3f2e2f34757f828097b6c9db9bd8e",
+          "withoutMetadata": "b3b6ffdc25f7cba3bcfe73d9efcf17c2e36bf95f4f98cea4339c219fa4a24172",
+          "linkedWithoutMetadata": "b3b6ffdc25f7cba3bcfe73d9efcf17c2e36bf95f4f98cea4339c219fa4a24172"
+        },
+        "inherit": [
+          "@semaphore-protocol/contracts/interfaces/ISemaphore.sol:ISemaphore"
+        ],
+        "libraries": [],
+        "methods": [
+          "groupCounter()",
+          "createGroup()",
+          "createGroup(address)",
+          "createGroup(address,uint256)",
+          "updateGroupAdmin(uint256,address)",
+          "acceptGroupAdmin(uint256)",
+          "updateGroupMerkleTreeDuration(uint256,uint256)",
+          "addMember(uint256,uint256)",
+          "addMembers(uint256,uint256[])",
+          "updateMember(uint256,uint256,uint256,uint256[])",
+          "removeMember(uint256,uint256,uint256[])",
+          "validateProof(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))",
+          "verifyProof(uint256,(uint256,uint256,uint256,uint256,uint256,uint256[8]))"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [
+            {
+              "label": "usedNullifiers",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_mapping(t_uint256,t_bool)",
+              "contract": "MockSemaphore",
+              "src": "contracts/mocks/MockSemaphore.sol:11"
+            }
+          ],
+          "types": {
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_mapping(t_uint256,t_bool)": {
+              "label": "mapping(uint256 => bool)",
+              "numberOfBytes": "32"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      },
+      "poseidon-solidity/PoseidonT3.sol:PoseidonT3": {
+        "src": "poseidon-solidity/PoseidonT3.sol:4",
+        "version": {
+          "withMetadata": "419d340170ad36c4c838490ae4e224c25b881c65b987f586afb6b05a0388678b",
+          "withoutMetadata": "8886bb8eb03bd7e906bc0cef743f0d15ad050bc5a6803558cc28ac662919f768",
+          "linkedWithoutMetadata": "8886bb8eb03bd7e906bc0cef743f0d15ad050bc5a6803558cc28ac662919f768"
+        },
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "hash(uint256[2])"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.23"
+      }
+    }
+  ]
+}

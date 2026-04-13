@@ -520,7 +520,7 @@ export default function Settings({ account }) {
         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
           <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
           <div>
-            <div className="text-sm font-semibold text-gray-800">{NETWORK_CONFIG.chainName}</div>
+            {/* <div className="text-sm font-semibold text-gray-800">{NETWORK_CONFIG.chainName}</div> */}
             <div className="text-xs text-gray-400 font-mono">Chain ID: {NETWORK_CONFIG.chainId} · {NETWORK_CONFIG.rpcUrl}</div>
           </div>
         </div>

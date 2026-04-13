@@ -2,8 +2,13 @@ const { ethers, network } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
-const rpcUrl = process.env.HARDHAT_RPC_URL || "http://127.0.0.1:8545";
-const chainId = Number(process.env.HARDHAT_CHAIN_ID || network.config.chainId || 1337);
+const configuredNetwork = network.config || {};
+const rpcUrl =
+    configuredNetwork.url ||
+    process.env.TENDERLY_VIRTUAL_MAINNET_RPC_URL ||
+    process.env.HARDHAT_RPC_URL ||
+    "http://127.0.0.1:8545";
+const chainId = Number(configuredNetwork.chainId || process.env.HARDHAT_CHAIN_ID || 1337);
 const frontendUrl = process.env.VITE_FRONTEND_URL || `http://localhost:${process.env.VITE_FRONTEND_PORT || 5173}`;
 const configuredRbacAdminWallet = process.env.RBAC_ADMIN_WALLET || process.env.VITE_RBAC_ADMIN_WALLET || "";
 const configuredRelayerPrivateKey = process.env.ZK_RELAYER_PRIVATE_KEY || process.env.RELAYER_PRIVATE_KEY || "";
@@ -73,7 +78,17 @@ async function main() {
 
     // ── 2. FileAccessControl ─────────────────────────────────────────────
     console.log("\n📦 Deploying FileAccessControl...");
+
     const FileAccessControl = await ethers.getContractFactory("FileAccessControl");
+
+    // 🔍 DEBUG: Check ABI BEFORE deployment
+    console.log(
+        "Factory ABI functions:",
+        FileAccessControl.interface.fragments
+            .filter(f => f.type === "function")
+            .map(f => f.name)
+    );
+
     const accessControl = await FileAccessControl.deploy(semaphoreAddr);
     await accessControl.waitForDeployment();
     const accessControlAddr = await accessControl.getAddress();
@@ -84,7 +99,18 @@ async function main() {
         console.log("⚠️ ZK_RELAYER_PRIVATE_KEY/RELAYER_PRIVATE_KEY is invalid; skipping setZkRelayer.");
     } else if (relayerAddress) {
         console.log(`🔁 Configuring ZK relayer wallet: ${relayerAddress}`);
-        const txRelayer = await accessControl.setZkRelayer(relayerAddress);
+        const hasSetZkRelayer = accessControl.interface.hasFunction("setZkRelayer");
+        if (!hasSetZkRelayer) {
+            const availableFns = (accessControl.interface.fragments || [])
+                .filter((f) => f.type === "function")
+                .map((f) => f.name)
+                .join(", ");
+            throw new Error(
+                `setZkRelayer is missing from deployed contract interface. Available functions: ${availableFns}`
+            );
+        }
+
+        const txRelayer = await accessControl.getFunction("setZkRelayer")(relayerAddress);
         await txRelayer.wait();
         console.log("✅ ZK relayer configured in AccessControl");
     } else {
